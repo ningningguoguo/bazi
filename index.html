@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>专业八字排盘</title>
+<!-- 引入开源专业历法库 -->
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js"></script>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f2f7; margin: 0; padding: 20px; color: #1c1c1e; }
+.card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); margin-bottom: 20px; max-width: 620px; margin-left: auto; margin-right: auto; }
+h2 { margin-top: 0; font-size: 17px; color: #1c1c1e; border-bottom: 2px solid #007aff; padding-bottom: 6px; display: inline-block; }
+.row { display: flex; gap: 8px; margin-top: 8px; }
+.row > div { flex: 1; }
+label { display: block; margin-top: 8px; font-weight: 600; font-size: 12px; color: #666; }
+input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #e5e5ea; box-sizing: border-box; font-size: 14px; }
+.btn-submit { background: #007aff; color: white; border: none; font-weight: bold; font-size: 15px; margin-top: 16px; cursor: pointer; padding: 12px; border-radius: 10px; }
+
+/* 文本列表区域（优化复制体验） */
+.list-box { background: #f8f9fa; border-left: 4px solid #007aff; padding: 14px 16px; border-radius: 8px; margin-top: 12px; font-size: 14px; line-height: 1.8; color: #1c1c1e; }
+.list-box ul { margin: 6px 0 0 0; padding-left: 20px; }
+.list-box li { margin-bottom: 4px; }
+
+/* 运势解读卡片 */
+.anim-stage { background: linear-gradient(135deg, #1c1c1e, #2c2c2e); color: white; border-radius: 14px; padding: 18px; text-align: center; margin-top: 12px; }
+.anim-scene { font-size: 38px; margin-bottom: 6px; }
+.relation-box { background: #eef2ff; border-left: 4px solid #007aff; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 14px; line-height: 1.6; }
+.tag-shishen { background: #007aff; color: white; border-radius: 4px; padding: 2px 6px; font-size: 12px; margin-left: 4px; }
+.date-range { color: #d9534f; font-weight: bold; }
+
+/* 辩证提示框 */
+.philosophy-tips { background: #f0fdf4; border: 1px dashed #34c759; border-radius: 8px; padding: 10px 12px; margin-top: 12px; font-size: 13px; color: #15803d; line-height: 1.6; }
+
+/* 冲突标签样式 */
+.relation-tag { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin: 3px 4px 3px 0; }
+.tag-chong { background: #ff3b30; color: white; }
+.tag-xing { background: #ff9500; color: white; }
+.tag-hai { background: #af52de; color: white; }
+.tag-he { background: #34c759; color: white; }
+.tag-hui { background: #5856d6; color: white; }
+.tag-suiyun { background: #d9534f; color: white; border: 1px solid #fff; }
+.index-badge { background: rgba(0,0,0,0.25); border-radius: 4px; padding: 1px 4px; font-size: 10px; margin-left: 4px; }
+
+/* 深度重点警示卡片 */
+.alert-card { background: #fff8f8; border: 1px solid #ffccc7; border-left: 5px solid #ff3b30; border-radius: 10px; padding: 12px; margin-top: 10px; font-size: 13px; color: #1c1c1e; line-height: 1.6; }
+.alert-card-header { font-weight: bold; font-size: 14px; color: #d9534f; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.alert-sub-title { font-weight: bold; color: #007aff; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>1. 输入精准生辰信息</h2>
+<div class="row">
+<div>
+<label>历法</label>
+<select id="calendarType">
+<option value="solar">公历 (阳历)</option>
+<option value="lunar">农历 (阴历)</option>
+</select>
+</div>
+<div>
+<label>性别</label>
+<select id="gender">
+<option value="女">坤造 (女)</option>
+<option value="男">乾造 (男)</option>
+</select>
+</div>
+</div>
+
+<div class="row">
+<div><label>年</label><input type="number" id="year" value="2000"></div>
+<div><label>月 (1-12)</label><input type="number" id="month" value="1" min="1" max="12"></div>
+<div><label>日 (1-31)</label><input type="number" id="day" value="1" min="1" max="31"></div>
+</div>
+<div class="row">
+<div>
+<label>时辰 (含十二时辰汉字对照)</label>
+<select id="hourSelect">
+<option value="0">子时 (23:00 - 00:59)</option>
+<option value="1">丑时 (01:00 - 02:59)</option>
+<option value="3">寅时 (03:00 - 04:59)</option>
+<option value="5">卯时 (05:00 - 06:59)</option>
+<option value="7">辰时 (07:00 - 08:59)</option>
+<option value="9">巳时 (09:00 - 10:59)</option>
+<option value="11">午时 (11:00 - 12:59)</option>
+<option value="13">未时 (13:00 - 14:59)</option>
+<option value="15">申时 (15:00 - 16:59)</option>
+<option value="17">酉时 (17:00 - 18:59)</option>
+<option value="19">戌时 (19:00 - 20:59)</option>
+<option value="21">亥时 (21:00 - 22:59)</option>
+</select>
+</div>
+<div><label>分 (0-59)</label><input type="number" id="minute" value="0" min="0" max="59"></div>
+</div>
+
+<button class="btn-submit" onclick="runAll()">生成命盘并展开推演</button>
+</div>
+
+<div class="card" id="resultCard" style="display:none;">
+<h2>📜 八字原局干支结构</h2>
+
+<!-- 清爽列表化排盘输出 -->
+<div class="list-box" id="baziStructureBox">--</div>
+
+<!-- 原局自带地支冲刑专项剖析 -->
+<div class="relation-box" style="background:#fef2f2; border-left-color:#ff3b30; margin-top:16px;" id="baziSelfImpactBox">--</div>
+
+<!-- 生辰历法双对照与身强身弱分析 -->
+<div class="relation-box" style="background:#f0f9ff; border-left-color:#34c759; margin-top:16px;" id="baziFeatureBox">--</div>
+
+<!-- 第一栏：一生大运 -->
+<h2 style="margin-top:24px;">第一栏：一生大运列表 (带十神)</h2>
+<div id="startYunInfo" style="font-size:13px; color:#666; margin-top:4px;">--</div>
+
+<!-- 大运结构化列表 -->
+<div class="list-box" style="border-left-color:#ff9500;" id="dayunListBox">--</div>
+<div class="relation-box" style="background:#fffbe6; border-left-color:#ff9500;" id="dayunDetailBox">--</div>
+
+<!-- 第二栏：流年运势 -->
+<h2 style="margin-top:24px;">第二栏：流年运势 (原局+当前大运 联动推演)</h2>
+<div class="row">
+<div>
+<label>选择推演流年 (公历立春界限)</label>
+<select id="targetYearSelect" onchange="updateMonthSection()"></select>
+</div>
+</div>
+
+<!-- 命理辩证提示 -->
+<div class="philosophy-tips">
+💡 <strong>命理视角小贴士：</strong><br/>
+命理学中“冲、刑、合”本质上是<strong>气场能量的剧烈转化与结构重组</strong>，并非绝对的吉凶。<br/>
+• <strong>逢冲主“动”：</strong>往往打破僵局，带来跳槽、搬迁、脱单或事业新转机（“不冲不发”）；<br/>
+• <strong>逢刑主“塑”：</strong>代表细节磨合与能力重构，是自我升级与规则完善的契机。<br/>
+顺应能量，主动变通，方能变压力为破局之力。
+</div>
+
+<div class="relation-box" id="yearDetail">--</div>
+
+<!-- 第三栏：流月细看 -->
+<h2 style="margin-top:24px;">第三栏：流月干支细看 (原局+大运+流年 综合推演)</h2>
+<div class="row">
+<div>
+<label>选择目标月份 (以节气入月为准)</label>
+<select id="targetMonthZhi" onchange="updateMonthSection()">
+<option value="寅">寅月 / 农历正月 (立春 - 惊蛰)</option>
+<option value="卯">卯月 / 农历二月 (惊蛰 - 清明)</option>
+<option value="辰">辰月 / 农历三月 (清明 - 立夏)</option>
+<option value="巳">巳月 / 农历四月 (立夏 - 芒种)</option>
+<option value="午">午月 / 农历五月 (芒种 - 小暑)</option>
+<option value="未">未月 / 农历六月 (小暑 - 立秋)</option>
+<option value="申">申月 / 农历七月 (立秋 - 白露)</option>
+<option value="酉">酉月 / 农历八月 (白露 - 寒露)</option>
+<option value="戌">戌月 / 农历九月 (寒露 - 立冬)</option>
+<option value="亥">亥月 / 农历十月 (立冬 - 大雪)</option>
+<option value="子">子月 / 农历十一月 (大雪 - 小寒)</option>
+<option value="丑">丑月 / 农历十二月 (小寒 - 立春)</option>
+</select>
+</div>
+</div>
+<div class="relation-box" id="monthDetail">--</div>
+
+<!-- 第四栏：财运、姻缘、健康三大专项诊断 -->
+<h2 style="margin-top:24px;">第四栏：流年/流月 财姻健康三大专项诊断</h2>
+
+<div class="relation-box" style="background:#fff7ed; border-left-color:#ff9500; margin-top:10px;">
+<strong>🌸 婚恋与感情磁场专项解析：</strong>
+<div id="marriageAnalysisBox" style="margin-top:4px;">--</div>
+</div>
+
+<div class="relation-box" style="background:#f0fdf4; border-left-color:#34c759; margin-top:10px;">
+<strong>💰 财运与事业机遇专项解析：</strong>
+<div id="wealthAnalysisBox" style="margin-top:4px;">--</div>
+</div>
+
+<div class="relation-box" style="background:#fef2f2; border-left-color:#ff3b30; margin-top:10px;">
+<strong>🩺 身体健康与心态保养专项建议：</strong>
+<div id="healthAnalysisBox" style="margin-top:4px;">--</div>
+</div>
+
+<div class="anim-stage">
+<div class="anim-scene" id="animScene">🔮</div>
+<div id="animTitle" style="font-weight:bold; font-size:17px;">--</div>
+<p id="animDesc" style="line-height:1.6; font-size:13px; opacity: 0.9; margin-top:6px;"></p>
+</div>
+</div>
+
+<script>
+// 十神算法与藏干
+const ShiShenEngine = {
+ganWuXing: { '甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水' },
+ganYinYang: { '甲':1,'乙':0,'丙':1,'丁':0,'戊':1,'己':0,'庚':1,'辛':0,'壬':1,'癸':0 },
+wuXingSheng: { '木':'火', '火':'土', '土':'金', '金':'水', '水':'木' },
+wuXingKe: { '木':'土', '土':'水', '水':'火', '火':'金', '金':'木' },
+
+zhiCangGan: {
+'子': ['癸'], '丑': ['己', '癸', '辛'], '寅': ['甲', '丙', '戊'], '卯': ['乙'],
+'辰': ['戊', '乙', '癸'], '巳': ['丙', '庚', '戊'], '午': ['丁', '己'], '未': ['己', '丁', '乙'],
+'申': ['庚', '壬', '戊'], '酉': ['辛'], '戌': ['戊', '辛', '丁'], '亥': ['壬', '甲']
+},
+
+getShiShen(dayGan, targetGan) {
+if (dayGan === targetGan) return '比肩';
+const dayWX = this.ganWuXing[dayGan];
+const targetWX = this.ganWuXing[targetGan];
+const sameYY = this.ganYinYang[dayGan] === this.ganYinYang[targetGan];
+
+if (dayWX === targetWX) return sameYY ? '比肩' : '劫财';
+if (this.wuXingSheng[dayWX] === targetWX) return sameYY ? '食神' : '伤官';
+if (this.wuXingSheng[targetWX] === dayWX) return sameYY ? '偏印' : '正印';
+if (this.wuXingKe[dayWX] === targetWX) return sameYY ? '偏财' : '正财';
+if (this.wuXingKe[targetWX] === dayWX) return sameYY ? '七杀' : '正官';
+return '日主';
+},
+
+getCangGanInfo(dayGan, zhi) {
+const gans = this.zhiCangGan[zhi] || [];
+return gans.map(g => `${g}${this.ganWuXing[g]}(${this.getShiShen(dayGan, g)})`).join('、');
+}
+};
+
+// 冲合刑害基础字典
+const ImpactDictionary = {
+'丑未相刑': '丑未相刑（持势之刑）：易发生内部竞争、合作摩擦或脾胃消化系统不适，宜低调包容。',
+'丑戌相刑': '丑戌相刑（无恩之刑）：易感人情冷暖，谨防文书合同失误或身体皮肤、土气郁结。',
+'未戌相刑': '未戌相刑：火土相燥，情绪易急躁，需注意防范脾胃与皮肤燥热。',
+'丑未戌三刑': '丑未戌三刑：土气极旺，多主事务交织复杂、内心压力较大，需注重健脾祛湿与人际谦让。',
+'寅巳相刑': '寅巳相刑（无恩之刑）：木火交加，防范言语误会、急躁决策及交通安全。',
+'巳申相刑': '巳申相刑：刑中带合，代表过程波折但结局有转机，需防心脑血管或筋骨损伤。',
+'寅申相刑': '寅申相刑：金木相战，冲动明显，易出现工作环境变动或出行奔波。',
+'寅巳申三刑': '寅巳申三刑：气场交冲剧烈，多主奔波劳碌、情绪起伏大，宜静不宜动。',
+'子卯相刑': '子卯相刑（无礼之刑）：水木相生过旺，多主感情困扰或与长辈沟通生硬。',
+'辰辰自刑': '辰辰自刑：水库自刑，易生困顿悲观思想，需防范水湿内停或文书滞留。',
+'午午自刑': '午午自刑：双火重逢，性格易急躁冲动，需注意防范眼疾、心火及言语得罪人。',
+'酉酉自刑': '酉酉自刑：双金重叠，性格过于刚硬，防范呼吸道问题或金刃损伤。',
+'亥亥自刑': '亥亥自刑：双水重逢，思想易陷入死胡同，宜保持乐观心态。',
+'子午冲': '子午相冲：水火极战，主环境、情绪及心肾气血剧烈波动，多有变迁奔波之象。',
+'丑未冲': '丑未相冲：土库相冲，主不动产变动、脾胃调整或合作关系重组。',
+'寅申冲': '寅申相冲：金木相交，主岗位跳槽、远行出差或筋骨伤痛。',
+'卯酉冲': '卯酉相冲：木金相战，主感情风波、人际背离或肝胆肺部保养。',
+'辰戌冲': '辰戌相冲：土库大开，主工作变动、购房搬家或财库起伏。',
+'巳亥冲': '巳亥相冲：水火相冲，主心脑血管保养、环境多变及远行。',
+'子未害': '子未相害：水土相克，防小人暗算、感情误会及肾脏脾胃保健。',
+'丑午害': '丑午相害：湿土晦火，易生闷气，注意心火与脾胃不和。',
+'寅巳害': '寅巳相害：木火相穿，注意情绪急躁及财物小耗。',
+'卯辰害': '卯辰相害：木土相穿，防范皮肤问题及亲友间的沟通嫌隙。',
+'申亥害': '申亥相害：金水相害，防范呼吸系统及合作过程中的意料之外。',
+'酉戌害': '酉戌相害：金土相穿，防范面部皮肤及言语失误。'
+};
+
+// 全局冲合刑害与三合三会引擎
+const FullEarthEngine = {
+ganHe: { '甲己':'甲己合土', '己甲':'甲己合土', '乙庚':'乙庚合金', '庚乙':'乙庚合金', '丙辛':'丙辛合水', '辛丙':'丙辛合水', '丁壬':'丁壬合木', '壬丁':'丁壬合木', '戊癸':'戊癸合火', '癸戊':'戊癸合火' },
+ganChong: { '甲庚':'甲庚冲', '庚甲':'甲庚冲', '乙辛':'乙辛冲', '辛乙':'乙辛冲', '丙壬':'丙壬冲', '壬丙':'丙壬冲', '丁癸':'丁癸冲', '癸丁':'丁癸冲' },
+
+zhiChong: { '子午':'子午冲', '午子':'子午冲', '丑未':'丑未冲', '未丑':'丑未冲', '寅申':'寅申冲', '申寅':'寅申冲', '卯酉':'卯酉冲', '酉卯':'卯酉冲', '辰戌':'辰戌冲', '戌辰':'辰戌冲', '巳亥':'巳亥冲', '亥巳':'巳亥冲' },
+zhiHe: { '子丑':'子丑合', '丑子':'子丑合', '寅亥':'寅亥合', '亥寅':'寅亥合', '卯戌':'卯戌合', '戌卯':'卯戌合', '辰酉':'辰酉合', '酉辰':'辰酉合', '巳申':'巳申合', '申巳':'巳申合', '午未':'午未合', '未午':'午未合' },
+zhiHai: { '子未':'子未害', '未子':'子未害', '丑午':'丑午害', '午丑':'丑午害', '寅巳':'寅巳害', '巳寅':'寅巳害', '卯辰':'卯辰害', '辰卯':'卯辰害', '申亥':'申亥害', '亥申':'申亥害', '酉戌':'酉戌害', '戌酉':'酉戌害' },
+zhiXing: {
+'寅巳':'寅巳相刑', '巳寅':'寅巳相刑', '巳申':'巳申相刑', '申巳':'巳申相刑', '寅申':'寅申相刑', '申寅':'寅申相刑',
+'丑未':'丑未相刑', '未丑':'丑未相刑', '未戌':'未戌相刑', '戌未':'未戌相刑', '丑戌':'丑戌相刑', '戌丑':'丑戌相刑',
+'子卯':'子卯相刑', '卯子':'子卯相刑',
+'辰辰':'辰辰自刑', '午午':'午午自刑', '酉酉':'酉酉自刑', '亥亥':'亥亥自刑'
+},
+
+sanHe: {
+'巳酉丑': { name: '巳酉丑三合金局', targetWX: '金' },
+'亥卯未': { name: '亥卯未三合木局', targetWX: '木' },
+'申子辰': { name: '申子辰三合水局', targetWX: '水' },
+'寅午戌': { name: '寅午戌三合火局', targetWX: '火' }
+},
+sanHui: {
+'巳午未': { name: '巳午未三会儿局', targetWX: '火' },
+'亥子丑': { name: '亥子丑三会水局', targetWX: '水' },
+'寅卯辰': { name: '寅卯辰三会木局', targetWX: '木' },
+'申酉戌': { name: '申酉戌三会儿局', targetWX: '金' }
+},
+
+analyzeGan(targetGan, targetList) {
+let results = [];
+if (!targetList) return results;
+targetList.forEach(item => {
+if(!item || !item.gan) return;
+const k = targetGan + item.gan;
+if (this.ganChong[k]) {
+let idx = 8.5;
+if (item.name && item.name.includes('日主')) idx += 1.0;
+if (item.name && item.name.includes('大运')) idx += 0.5;
+results.push({ name: `${this.ganChong[k]} (${item.name} ${item.gan})`, rawKey: this.ganChong[k], type: 'chong', index: Math.min(idx, 10.0) });
+}
+if (this.ganHe[k]) {
+results.push({ name: `${this.ganHe[k]} (${item.name} ${item.gan})`, rawKey: this.ganHe[k], type: 'he', index: 3.5 });
+}
+});
+return results;
+},
+
+analyzeZhi(targetZhi, targetList, isXiShen) {
+let results = [];
+if (!targetList) return results;
+
+targetList.forEach(item => {
+if(!item || !item.zhi) return;
+const k = targetZhi + item.zhi;
+
+if (this.zhiChong[k]) {
+let idx = 9.0;
+if (item.name && (item.name.includes('日支') || item.name.includes('婚姻'))) idx += 1.0;
+if (item.name && item.name.includes('大运')) idx += 0.8;
+
+let prefix = isXiShen ? '【🌟 喜神逢冲·破局立功】' : '【⚠️ 气场动摇·宜稳忌冲】';
+results.push({ name: `${prefix} ${this.zhiChong[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiChong[k], type: 'chong', index: Math.min(idx, 10.0), isXi: isXiShen });
+}
+if (this.zhiXing[k]) {
+let idx = 7.5;
+if (item.name && (item.name.includes('日支') || item.name.includes('婚姻'))) idx += 0.8;
+let prefix = isXiShen ? '【✨ 喜神相刑·能力重构】' : '【⚠️ 细节磨合·防范争议】';
+results.push({ name: `${prefix} ${this.zhiXing[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiXing[k], type: 'xing', index: idx, isXi: isXiShen });
+}
+if (this.zhiHai[k]) {
+let idx = 5.5;
+if (item.name && item.name.includes('日支')) idx += 0.5;
+results.push({ name: `${this.zhiHai[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiHai[k], type: 'hai', index: idx });
+}
+if (this.zhiHe[k]) {
+results.push({ name: `${this.zhiHe[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiHe[k], type: 'he', index: 3.0 });
+}
+});
+
+const allZhis = [targetZhi, ...targetList.map(t => t.zhi)];
+const zhiSet = new Set(allZhis);
+
+for (let key in this.sanHe) {
+const chars = key.split('');
+if (chars.every(c => zhiSet.has(c))) {
+results.push({ name: `${this.sanHe[key].name} (全局凝结)`, rawKey: key, targetWX: this.sanHe[key].targetWX, type: 'hui', index: 8.8 });
+}
+}
+for (let key in this.sanHui) {
+const chars = key.split('');
+if (chars.every(c => zhiSet.has(c))) {
+results.push({ name: `${this.sanHui[key].name} (气场极旺)`, rawKey: key, targetWX: this.sanHui[key].targetWX, type: 'hui', index: 9.5 });
+}
+}
+
+return results.sort((a, b) => b.index - a.index);
+}
+};
+
+const WuHuDunEngine = {
+tianganList: ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'],
+dizhiList: ['寅','卯','辰','巳','午','未','申','酉','戌','亥','子','丑'],
+startGanMap: { '甲':'丙','己':'丙','乙':'戊','庚':'戊','丙':'庚','辛':'庚','丁':'壬','壬':'壬','戊':'甲','癸':'甲' },
+zhiJieQiMap: {
+'寅': ['立春', '惊蛰'], '卯': ['惊蛰', '清明'], '辰': ['清明', '立夏'],
+'巳': ['立夏', '芒种'], '午': ['芒种', '小暑'], '未': ['小暑', '立秋'],
+'申': ['立秋', '白露'], '酉': ['白露', '寒露'], '戌': ['寒露', '立冬'],
+'亥': ['立冬', '大雪'], '子': ['大雪', '小寒'], '丑': ['小寒', '立春']
+},
+
+getMonthGanZhi(yearGan, monthZhi) {
+const startGan = this.startGanMap[yearGan];
+const startGanIdx = this.tianganList.indexOf(startGan);
+const zhiIdx = this.dizhiList.indexOf(monthZhi);
+const targetGanIdx = (startGanIdx + zhiIdx) % 10;
+return { gan: this.tianganList[targetGanIdx], zhi: monthZhi, ganZhi: this.tianganList[targetGanIdx] + monthZhi };
+},
+
+getDynamicSolarRange(yearNum, monthZhi) {
+try {
+const jieQiNames = this.zhiJieQiMap[monthZhi];
+let y1 = yearNum, y2 = yearNum;
+if (monthZhi === '子') y2 = yearNum + 1;
+else if (monthZhi === '丑') { y1 = yearNum + 1; y2 = yearNum + 1; }
+
+const lunar1 = Lunar.fromYmd(y1, 1, 1);
+const d1 = lunar1.getJieQiTable()[jieQiNames[0]];
+const lunar2 = Lunar.fromYmd(y2, 1, 1);
+const d2 = lunar2.getJieQiTable()[jieQiNames[1]];
+
+if (d1 && d2) {
+const fmt = (s) => `${s.getYear()}-${String(s.getMonth()).padStart(2,'0')}-${String(s.getDay()).padStart(2,'0')}`;
+return `${fmt(d1)} 至 ${fmt(d2)} (${jieQiNames[0]}~${jieQiNames[1]})`;
+}
+} catch (e) { console.error(e); }
+return `约 ${yearNum} 年 ${monthZhi}月 对应节气区间`;
+}
+};
+
+let globalFourGans = [];
+let globalFourZhis = [];
+let globalDayGan = '';
+let globalGender = '女';
+let globalDaYunList = [];
+let globalIsStrong = false;
+
+function getGanZhiByYear(yearNum) {
+const ganList = ['庚','辛','壬','癸','甲','乙','丙','丁','戊','己'];
+const zhiList = ['申','酉','戌','亥','子','丑','寅','卯','辰','巳','午','未'];
+return ganList[yearNum % 10] + zhiList[yearNum % 12];
+}
+
+// 扩展流年选择：增加至未来20年
+function populateYearSelect(birthYear) {
+const yearSelect = document.getElementById('targetYearSelect');
+yearSelect.innerHTML = '';
+const currentYear = new Date().getFullYear();
+const startYear = isNaN(birthYear) ? 2000 : birthYear;
+
+for (let y = startYear; y <= currentYear + 20; y++) {
+const option = document.createElement('option');
+option.value = y;
+option.textContent = `${y} ${getGanZhiByYear(y)}年`;
+if (y === currentYear) option.selected = true;
+yearSelect.appendChild(option);
+}
+}
+
+function getCurrentDaYunByYear(targetYear) {
+if(!globalDaYunList || globalDaYunList.length === 0) return null;
+for (let dy of globalDaYunList) {
+if (targetYear >= dy.startYear && targetYear <= dy.endYear) {
+return dy;
+}
+}
+return null;
+}
+
+// 身强身弱判定
+function analyzeDayStrength(eightChar) {
+const dayGan = eightChar.getDayGan();
+const monthZhi = eightChar.getMonthZhi();
+const dayWX = ShiShenEngine.ganWuXing[dayGan];
+
+const shengMe = { '金':'土', '木':'水', '水':'金', '火':'木', '土':'火' }[dayWX];
+const sameMe = dayWX;
+
+let score = 0;
+let reasons = [];
+
+// 1. 月令判定
+const monthCangGans = ShiShenEngine.zhiCangGan[monthZhi] || [];
+const isDeLing = monthCangGans.some(g => ShiShenEngine.ganWuXing[g] === sameMe || ShiShenEngine.ganWuXing[g] === shengMe);
+
+if (isDeLing) {
+score += 45;
+reasons.push(`得令（生于【${monthZhi}月】，月令带有生扶日主的${shengMe}/${sameMe}五行能量）`);
+} else {
+reasons.push(`失令（生于【${monthZhi}月】，月令五行耗泄日主【${dayGan}${dayWX}】）`);
+}
+
+// 2. 地支通根
+let genCount = 0;
+[eightChar.getYearZhi(), eightChar.getMonthZhi(), eightChar.getDayZhi(), eightChar.getTimeZhi()].forEach(z => {
+const cgs = ShiShenEngine.zhiCangGan[z] || [];
+if (cgs.some(g => ShiShenEngine.ganWuXing[g] === sameMe || ShiShenEngine.ganWuXing[g] === shengMe)) {
+genCount++;
+}
+});
+score += genCount * 8;
+if (genCount > 0) {
+reasons.push(`得地（在四柱地支中有 ${genCount} 处生扶/通根）`);
+} else {
+reasons.push(`失地（地支缺乏日主的同类通根）`);
+}
+
+// 3. 天干帮扶
+let ganHelp = 0;
+[eightChar.getYearGan(), eightChar.getMonthGan(), eightChar.getTimeGan()].forEach(g => {
+const wx = ShiShenEngine.ganWuXing[g];
+if (wx === sameMe || wx === shengMe) ganHelp++;
+});
+score += ganHelp * 8;
+if (ganHelp > 0) {
+reasons.push(`得势（天干有 ${ganHelp} 个比劫/印星透出帮扶）`);
+} else {
+reasons.push(`失势（天干多为官杀、财星或食伤克泄）`);
+}
+
+let status = '身弱';
+let suggest = '';
+
+if (score >= 48) {
+status = '身旺';
+globalIsStrong = true;
+suggest = `喜克泄耗（喜财星、官杀、食伤）；忌再逢印星生身、比劫帮身。`;
+} else if (score >= 40) {
+status = '中和';
+globalIsStrong = true;
+suggest = `气场相对平稳，随大运流年的引动而灵活调整用神。`;
+} else {
+status = '身弱';
+globalIsStrong = false;
+suggest = `喜生扶（喜印星生身、比劫帮身）；忌官杀重克、财星重耗、食伤重泄。`;
+}
+
+return {
+status: status,
+reasonText: reasons.join('；'),
+suggest: suggest
+};
+}
+
+// 原局自带刑冲剖析引擎
+function analyzeBaziSelfImpacts(eightChar) {
+const yZhi = eightChar.getYearZhi();
+const mZhi = eightChar.getMonthZhi();
+const dZhi = eightChar.getDayZhi();
+const tZhi = eightChar.getTimeZhi();
+
+const pillars = [
+{ name: '年支(父母/祖业)', zhi: yZhi },
+{ name: '月支(事业/兄弟)', zhi: mZhi },
+{ name: '日支(婚姻/配偶)', zhi: dZhi },
+{ name: '时支(子女/晚年)', zhi: tZhi }
+];
+
+let impacts = [];
+
+for (let i = 0; i < pillars.length; i++) {
+for (let j = i + 1; j < pillars.length; j++) {
+const p1 = pillars[i], p2 = pillars[j];
+const k = p1.zhi + p2.zhi;
+
+if (FullEarthEngine.zhiChong[k]) {
+impacts.push(`• <strong>【${FullEarthEngine.zhiChong[k]}】 (${p1.name} 与 ${p2.name})：</strong>原局自带地支相冲。代表【${p1.name.split('(')[0]}】与【${p2.name.split('(')[0]}】领域存在内在张力，心态或环境易逢阶段性重组。`);
+} else if (FullEarthEngine.zhiXing[k]) {
+impacts.push(`• <strong>【${FullEarthEngine.zhiXing[k]}】 (${p1.name} 与 ${p2.name})：</strong>原局自带地支相刑。主内部细节纠葛或特定生活领域需磨合，宜包容理智。`);
+} else if (FullEarthEngine.zhiHai[k]) {
+impacts.push(`• <strong>【${FullEarthEngine.zhiHai[k]}】 (${p1.name} 与 ${p2.name})：</strong>原局自带地支相害。注意沟通细节与情感防备感。`);
+}
+}
+}
+
+if (impacts.length === 0) {
+return `<strong>⚡ 原局地支内在冲刑诊断：</strong><br/>• 原局四柱地支无直接剧烈相冲相刑，先天气场稳固，人际与内部环境相对和谐。`;
+} else {
+return `<strong>⚡ 原局地支内在冲刑诊断 (原生结构课题)：</strong><br/>` + impacts.join('<br/>');
+}
+}
+
+// 生成文本列表格式的八字原局（已删除日柱的“即”字）
+function generateBaziStructureList(eightChar) {
+const yGan = eightChar.getYearGan(), yZhi = eightChar.getYearZhi();
+const mGan = eightChar.getMonthGan(), mZhi = eightChar.getMonthZhi();
+const dGan = eightChar.getDayGan(), dZhi = eightChar.getDayZhi();
+const tGan = eightChar.getTimeGan(), tZhi = eightChar.getTimeZhi();
+
+const yShi = ShiShenEngine.getShiShen(dGan, yGan);
+const mShi = ShiShenEngine.getShiShen(dGan, mGan);
+const tShi = ShiShenEngine.getShiShen(dGan, tGan);
+
+const yCang = ShiShenEngine.getCangGanInfo(dGan, yZhi);
+const mCang = ShiShenEngine.getCangGanInfo(dGan, mZhi);
+const dCang = ShiShenEngine.getCangGanInfo(dGan, dZhi);
+const tCang = ShiShenEngine.getCangGanInfo(dGan, tZhi);
+
+const dayWX = ShiShenEngine.ganWuXing[dGan];
+
+return `<strong>📜 八字原局干支结构：</strong>
+<ul>
+  <li><strong>年柱：</strong>${yGan}${yZhi}（天干<strong>${yShi}</strong>，地支藏：${yCang} —— 父母/祖业宫）</li>
+  <li><strong>月柱：</strong>${mGan}${mZhi}（天干<strong>${mShi}</strong>，地支藏：${mCang} —— 事业/兄弟宫）</li>
+  <li><strong>日柱：</strong>${dGan}${dZhi}（日主为<strong>${dGan}${dayWX}</strong>，坐下${dZhi}藏：${dCang} —— 婚姻/配偶宫）</li>
+  <li><strong>时柱：</strong>${tGan}${tZhi}（天干<strong>${tShi}</strong>，地支藏：${tCang} —— 子女/晚年宫）</li>
+</ul>`;
+}
+
+// 生成原局分析与公农双历日期对照
+function generateBaziFeatures(lunarObj, eightChar) {
+const monthZhi = eightChar.getMonthZhi();
+const dayGan = eightChar.getDayGan();
+const dayWX = ShiShenEngine.ganWuXing[dayGan];
+const solar = lunarObj.getSolar();
+
+const strengthAnalysis = analyzeDayStrength(eightChar);
+
+let text = `<strong>📅 生辰历法双对照：</strong><br/>`;
+text += `• <strong>公历 (阳历)：</strong>${solar.getYear()}年${solar.getMonth()}月${solar.getDay()}日 ${solar.getHour()}时${solar.getMinute()}分<br/>`;
+text += `• <strong>农历 (阴历)：</strong>${lunarObj.getYearInGanZhi()}年 (${lunarObj.getYearShengXiao()}年) ${lunarObj.getMonthInChinese()}月${lunarObj.getDayInChinese()} ${eightChar.getTimeZhi()}时<br/><br/>`;
+
+text += `<strong>📜 八字原局格局与身强身弱诊断：</strong><br/>`;
+text += `• <strong>日主五行：</strong>【${dayGan}】属 ${dayWX}，生于【${monthZhi}月】。<br/>`;
+text += `• <strong>日主旺衰：</strong><span style="font-size:15px; font-weight:bold; color:#007aff;">【${strengthAnalysis.status}】</span><br/>`;
+text += `• <strong>判定原因：</strong>${strengthAnalysis.reasonText}。<br/>`;
+text += `• <strong>喜用建议：</strong>${strengthAnalysis.suggest}<br/>`;
+
+if (['亥','子','丑'].includes(monthZhi) && ['壬','癸','庚','辛'].includes(dayGan)) {
+text += `• <strong>调候特征：</strong>属于【金寒水冷】之象，局中极需火气调候暖局，若遇丙丁火/巳午火流年大运，精神与事业大有提振。`;
+} else if (['巳','午','未'].includes(monthZhi) && ['丙','丁','甲','乙'].includes(dayGan)) {
+text += `• <strong>调候特征：</strong>属于【木火通明/燥热】之象，局中需水湿润，宜保持理智与沉稳心态。`;
+} else {
+text += `• <strong>调候特征：</strong>五行循转正常，重点关注大运流年对婚姻宫与事业宫的冲合。`;
+}
+
+return text;
+}
+
+function explainDaYunImpact(dayGan, dyGan, dyZhi) {
+const shishen = ShiShenEngine.getShiShen(dayGan, dyGan);
+
+let desc = `本十年走【${dyGan}${dyZhi}】大运（天干透出：<strong>${shishen}</strong>）。<br/>`;
+
+if (shishen === '偏印' || shishen === '正印') {
+desc += `• <strong>运势走向：</strong>印星当运。有利于学术求知、买房置业、修养身心及获得长辈贵人助力；但若原局印星过旺，也需防思想顾虑过多、行动力不足。`;
+} else if (shishen === '正官' || shishen === '七杀') {
+desc += `• <strong>运势走向：</strong>官杀当运。代表事业权威、职位责任及社会资源；若身强能任官，多主升职加薪、创业成名；若身弱，则需注意工作压力、加班劳累或感情纠葛。`;
+} else if (shishen === '正财' || shishen === '偏财') {
+desc += `• <strong>运势走向：</strong>财星当运。主财运机遇、投资理财及商业拓展。身强极利求财聚财；身弱防范开支过大或劳心费神。`;
+} else if (shishen === '食神' || shishen === '伤官') {
+desc += `• <strong>运势走向：</strong>食伤当运。主才华施展、想法爆发、技能输出及创业灵感。利于展现个人能力，但需谨慎处理口舌际遇。`;
+} else {
+desc += `• <strong>运势走向：</strong>比劫当运。主社交人脉、团队合作与朋友助力，但也需注意竞争加剧与财务分配。`;
+}
+
+return desc;
+}
+
+// 专项推演引擎：财运、婚姻、健康
+function calculateSpecialAspects(dayGan, targetGan, targetZhi, zhiImpacts) {
+const dayWX = ShiShenEngine.ganWuXing[dayGan];
+const targetGanShiShen = ShiShenEngine.getShiShen(dayGan, targetGan);
+const targetZhiWX = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' }[targetZhi];
+
+const spouseShiShen = globalGender === '女' ? ['正官', '七杀'] : ['正财', '偏财'];
+
+// 1. 婚姻专项
+let marriageText = '';
+const isSpouseGan = spouseShiShen.includes(targetGanShiShen);
+const hasMarriageImpact = zhiImpacts.some(i => i.name && (i.name.includes('日支') || i.name.includes('婚姻')));
+
+if (isSpouseGan || hasMarriageImpact) {
+marriageText = `• <strong>婚恋引动显著：</strong>天干透出【${targetGanShiShen}】或地支引动婚姻宫。坤造/乾造对应桃花/配偶磁场强劲升温。<br/>`;
+if (hasMarriageImpact) {
+marriageText += `• <strong>婚姻宫受动摇/合入：</strong>婚姻宫（日支）发生冲合作用。未婚者利于脱单、定局或婚恋进展；有伴者需注重沟通与情绪调适，避免非理性摩擦。`;
+} else {
+marriageText += `• <strong>异性缘分提振：</strong>利于扩大社交圈，认识有默契的异性朋友。`;
+}
+} else {
+marriageText = `• <strong>婚恋磁场平稳：</strong>流年/流月未对婚姻宫及配偶星产生剧烈碰撞，感情维持既有节奏，宜细水长流。`;
+}
+
+// 2. 财运专项
+let wealthText = '';
+const wealthShiShens = ['正财', '偏财', '食神', '伤官'];
+if (wealthShiShens.includes(targetGanShiShen)) {
+if (globalIsStrong) {
+wealthText = `• <strong>【身强胜财】求财爆发期：</strong>天干透出【${targetGanShiShen}】。极利于商业拓展、技能变现、项目落成与投资回报，行动力越强收益越高！`;
+} else {
+wealthText = `• <strong>【身弱逢财】求财宜稳健：</strong>天干透出【${targetGanShiShen}】。财源机会虽多，但需防劳心费神、开销变大。宜合作求财，切忌孤注一掷过于劳累。`;
+}
+} else if (targetGanShiShen === '劫财' || targetGanShiShen === '比肩') {
+wealthText = `• <strong>社交求财与防开支：</strong>透出【${targetGanShiShen}】。同辈人脉合作增多，但同时也代表竞争加剧、人情往来开销大，防范合伙破财。`;
+} else {
+wealthText = `• <strong>财运循序渐进：</strong>本阶段重心倾向于事业积累或学术贵人运，财运随主业稳定增长，宜稳健理财。`;
+}
+
+// 3. 健康专项
+let healthText = '';
+const zhiWXCounts = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 };
+[targetZhiWX, ...globalFourZhis.map(z => {
+const zhiMap = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' };
+return zhiMap[z.zhi];
+})].forEach(wx => { if(wx) zhiWXCounts[wx]++; });
+
+if (targetZhiWX === '水' || zhiWXCounts['水'] >= 3) {
+healthText = `• <strong>水气偏旺/受克：</strong>注重肾脏、泌尿系统及妇科/生殖保健，防范水湿内停或作息熬夜导致的精力耗损。`;
+} else if (targetZhiWX === '火' || zhiWXCounts['火'] >= 3) {
+healthText = `• <strong>火气偏燥/受克：</strong>注重心脑血管、眼疾、心火旺盛及睡眠质量调理，宜保持心态和平。`;
+} else if (targetZhiWX === '木' || zhiWXCounts['木'] >= 3) {
+healthText = `• <strong>木气交加/受克：</strong>注重肝胆养护、筋骨酸痛及精神压力释放，宜规律作息与多接触大自然。`;
+} else if (targetZhiWX === '金' || zhiWXCounts['金'] >= 3) {
+healthText = `• <strong>金气肃杀/过重：</strong>注重呼吸系统、肺部、咽喉及皮肤保养，避免情绪过于刚硬冲动。`;
+} else {
+healthText = `• <strong>土气重凝/脾胃：</strong>注重脾胃消化系统调理与饮食清淡，防范水湿内停或消化不良。`;
+}
+
+return { marriageText, wealthText, healthText };
+}
+
+function runAll() {
+try {
+const isSolar = document.getElementById('calendarType').value === 'solar';
+globalGender = document.getElementById('gender').value;
+const genderVal = globalGender === '男' ? 1 : 0;
+const y = parseInt(document.getElementById('year').value) || 2000;
+const m = parseInt(document.getElementById('month').value) || 1;
+const d = parseInt(document.getElementById('day').value) || 1;
+const h = parseInt(document.getElementById('hourSelect').value) || 0;
+const min = parseInt(document.getElementById('minute').value) || 0;
+
+populateYearSelect(y);
+
+let lunarObj = isSolar ? Solar.fromYmdHms(y, m, d, h, min, 0).getLunar() : Lunar.fromYmdHms(y, m, d, h, min, 0);
+const eightChar = lunarObj.getEightChar();
+
+globalDayGan = eightChar.getDayGan();
+globalFourGans = [
+{ name: '年干(父母/祖业宫)', gan: eightChar.getYearGan() },
+{ name: '月干(事业/兄弟宫)', gan: eightChar.getMonthGan() },
+{ name: '日主', gan: eightChar.getDayGan() },
+{ name: '时干(子女/晚年宫)', gan: eightChar.getTimeGan() }
+];
+
+globalFourZhis = [
+{ name: '年支(父母/祖业宫)', zhi: eightChar.getYearZhi() },
+{ name: '月支(事业/兄弟宫)', zhi: eightChar.getMonthZhi() },
+{ name: '日支(婚姻/配偶宫)', zhi: eightChar.getDayZhi() },
+{ name: '时支(子女/晚年宫)', zhi: eightChar.getTimeZhi() }
+];
+
+// 渲染文本列表形式的四柱结构
+document.getElementById('baziStructureBox').innerHTML = generateBaziStructureList(eightChar);
+
+// 原局自带刑冲剖析
+document.getElementById('baziSelfImpactBox').innerHTML = analyzeBaziSelfImpacts(eightChar);
+
+// 日期双对照与格局简批
+document.getElementById('baziFeatureBox').innerHTML = generateBaziFeatures(lunarObj, eightChar);
+
+// 一生大运 (列表化)
+const yun = eightChar.getYun(genderVal);
+document.getElementById('startYunInfo').innerText = `起运节点：约 ${yun.getStartYear()} 岁交运（每十年换一步大运）`;
+
+const daYunArray = yun.getDaYun();
+globalDaYunList = [];
+let dayunListHtml = '<strong>🚩 大运流水表：</strong><ul>';
+const currentYear = new Date().getFullYear();
+
+daYunArray.forEach((dy, index) => {
+if (index === 0) return;
+const startAge = dy.getStartAge();
+const startYear = dy.getStartYear();
+const endYear = startYear + 9;
+const ganZhi = dy.getGanZhi();
+const dyGan = ganZhi.charAt(0);
+const dyZhi = ganZhi.charAt(1);
+const shishen = ShiShenEngine.getShiShen(globalDayGan, dyGan);
+
+globalDaYunList.push({
+ganZhi: ganZhi,
+gan: dyGan,
+zhi: dyZhi,
+startYear: startYear,
+endYear: endYear,
+startAge: startAge,
+shishen: shishen
+});
+
+const isActive = currentYear >= startYear && currentYear <= endYear;
+const activeFlag = isActive ? ' <span style="color:#007aff; font-weight:bold;">[当前正在进行的大运]</span>' : '';
+
+dayunListHtml += `<li>【${shishen}】<strong>${ganZhi}</strong> 运（${startAge}岁 ~ ${endYear}年 / ${startYear}-${endYear}）${activeFlag}</li>`;
+});
+dayunListHtml += '</ul>';
+document.getElementById('dayunListBox').innerHTML = dayunListHtml;
+
+updateMonthSection();
+document.getElementById('resultCard').style.display = 'block';
+} catch(err) {
+console.error("排盘异常：", err);
+alert("排盘计算出现异常，请刷新重试。");
+}
+}
+
+function renderRelationTags(list) {
+if (!list || list.length === 0) return '<span style="color:#8e8e93; font-size:13px;">无明显直接冲合刑害</span>';
+
+return list.map(item => {
+let cls = 'tag-he';
+if (item.type === 'suiyun') cls = 'tag-suiyun';
+if (item.type === 'chong') cls = item.isXi ? 'tag-he' : 'tag-chong';
+if (item.type === 'xing') cls = item.isXi ? 'tag-he' : 'tag-xing';
+if (item.type === 'hai') cls = 'tag-hai';
+if (item.type === 'hui') cls = 'tag-hui';
+
+return `<span class="relation-tag ${cls}">
+${item.name} <span class="index-badge">指数:${item.index.toFixed(1)}</span>
+</span>`;
+}).join(' ');
+}
+
+function getSanHeDeepExplanation(dayGan, targetWX, rawKey) {
+const sampleGan = { '金':'辛','木':'乙','水':'癸','火':'丁','土':'己' }[targetWX];
+const targetShiShen = ShiShenEngine.getShiShen(dayGan, sampleGan);
+
+let text = `<strong>【${rawKey}】深度气场剖析：</strong><br/>`;
+text += `三合/三会局使得全盘【${targetWX}】元素能量极度汇聚爆发。对于【${dayGan}】日主而言，聚汇之${targetWX}能量转化为你的<strong>【${targetShiShen}】</strong>。<br/>`;
+
+if (['正官','七杀'].includes(targetShiShen)) {
+text += `• <strong>事业财运：</strong>官杀大凝结。事业压力与社会责任陡增，极易面临岗位调整、重任加身或创业突破；坤造（女命）也主感情异性缘极其强劲引动。<br/>`;
+text += `• <strong>行动指导：</strong>宜勇于担当，保持沉稳，避免因高压产生焦虑；注意防范加班劳累与筋骨/呼吸系统调节。`;
+} else if (['正财','偏财'].includes(targetShiShen)) {
+text += `• <strong>事业财运：</strong>财星大凝结。主大额资金流动、商业合作契机爆发或投资理财欲望强烈。<br/>`;
+text += `• <strong>行动指导：</strong>若日主有根能胜财，此阶段极利求财聚财；若身弱，注意规避盲目过大投资，防止劳心伤神。`;
+} else if (['食神','伤官'].includes(targetShiShen)) {
+text += `• <strong>事业财运：</strong>食伤大凝结。主思想灵感爆发、才华技能大倾注输出、极利创作、演讲与创业规划。<br/>`;
+text += `• <strong>行动指导：</strong>才华施展的同时需防言语过于直率得罪人，注重脚踏实地将想法落地。`;
+} else if (['正印','偏印'].includes(targetShiShen)) {
+text += `• <strong>事业财运：</strong>印星大凝结。贵人运强劲，主得到长辈关照、学术考证通过、买房置业或思想层面重构升级。<br/>`;
+text += `• <strong>行动指导：</strong>宜乘胜追击提升自我价值，防范想多动少、陷于思想内耗。`;
+} else {
+text += `• <strong>事业财运：</strong>比劫大凝结。主同辈、合作伙伴能量极强，利于团队协作、拓展人脉与同盟事业。<br/>`;
+text += `• <strong>行动指导：</strong>利于合伙做事，但也需防范利益分配矛盾或竞争加剧导致的开销破财。`;
+}
+
+return text;
+}
+
+function renderHighIndexAlerts(list) {
+if(!list || list.length === 0) return '';
+const highList = list.filter(item => item.index >= 6.0);
+if(highList.length === 0) return '';
+
+let html = '';
+
+highList.forEach(item => {
+let key = item.rawKey || '';
+
+if (item.type === 'suiyun') {
+html += `<div class="alert-card" style="background:#fff0f0; border-color:#ff4d4f;">
+<div class="alert-card-header">
+<span>🚨 专项高能预警：岁运并临 [指数: 10.0]</span>
+</div>
+<strong>【${item.name}】：</strong><br/>
+命理名言“岁运并临，独力难支；气场重叠，转折立显”。当流年干支（如 ${key}）与当前大运干支完全一致时，该干支对应的十神与五行能量在这一年内瞬间翻倍爆表。<br/>
+<div class="alert-sub-title">💡 深度影响与应对指南：</div>
+• <strong>生活转折：</strong>此年极易遇到人生长远规划、事业岗位、住址或家庭环境的重大变革与重组。<br/>
+• <strong>身体与心态：</strong>五行能量偏激，需格外留心五行对应的脏腑养护，心态宜保持沉稳，忌剧烈风险投资。<br/>
+• <strong>避凶趋吉：</strong>多行善积德，参加喜庆活动，凡事求稳不求急。
+</div>`;
+} else if (item.type === 'hui' && item.targetWX) {
+html += `<div class="alert-card">
+<div class="alert-card-header">
+<span>🔮 三合/三会局高能凝结警示 [指数: ${item.index.toFixed(1)}]</span>
+</div>
+${getSanHeDeepExplanation(globalDayGan, item.targetWX, item.name)}
+</div>`;
+} else {
+let detail = ImpactDictionary[key] || `触发剧烈气场作用【${item.name}】，建议保持心态稳健。`;
+
+html += `<div class="alert-card">
+<div class="alert-card-header">
+<span>⚠️ 地支剧烈冲/刑警示 [指数: ${item.index.toFixed(1)}]</span>
+</div>
+<strong>【${item.name}】:</strong><br/>
+${detail}<br/>
+<div class="alert-sub-title">💡 建议应对策略：</div>
+此阶段气场碰撞明显，宜低调包容，避免冲动决策，注重作息与身体脾胃/心火养护。
+</div>`;
+}
+});
+
+return html;
+}
+
+function updateMonthSection() {
+if(!globalDayGan) return;
+
+const targetYearSelect = document.getElementById('targetYearSelect');
+if(!targetYearSelect.value) return;
+const targetYearNum = parseInt(targetYearSelect.value);
+
+const ganList = ['庚','辛','壬','癸','甲','乙','丙','丁','戊','己'];
+const zhiList = ['申','酉','戌','亥','子','丑','寅','卯','辰','巳','午','未'];
+const yGan = ganList[targetYearNum % 10];
+const yZhi = zhiList[targetYearNum % 12];
+
+const currentDaYun = getCurrentDaYunByYear(targetYearNum);
+
+if (currentDaYun) {
+const daYunDesc = explainDaYunImpact(globalDayGan, currentDaYun.gan, currentDaYun.zhi);
+document.getElementById('dayunDetailBox').innerHTML = `
+<strong>🚩 目标年份 (${targetYearNum}) 所在大运：【${currentDaYun.ganZhi}】大运 (${currentDaYun.startYear}-${currentDaYun.endYear})</strong><br/>
+${daYunDesc}
+`;
+} else {
+document.getElementById('dayunDetailBox').innerHTML = `<strong>🚩 目标年份 (${targetYearNum})：</strong>处于幼年未交运或已出交运阶段。`;
+}
+
+const yZhiWX = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' }[yZhi];
+const dayWX = ShiShenEngine.ganWuXing[globalDayGan];
+const isSameOrSheng = (yZhiWX === dayWX || yZhiWX === { '金':'土','木':'水','水':'金','火':'木','土':'火' }[dayWX]);
+const isYearXiShen = globalIsStrong ? !isSameOrSheng : isSameOrSheng;
+
+let yearTargetGans = [...globalFourGans];
+let yearTargetZhis = [...globalFourZhis];
+
+if (currentDaYun) {
+yearTargetGans.push({ name: `当前大运(${currentDaYun.ganZhi})`, gan: currentDaYun.gan });
+yearTargetZhis.push({ name: `当前大运(${currentDaYun.ganZhi})`, zhi: currentDaYun.zhi });
+}
+
+const yShiShen = ShiShenEngine.getShiShen(globalDayGan, yGan);
+const yGanRel = FullEarthEngine.analyzeGan(yGan, yearTargetGans);
+let yZhiRel = FullEarthEngine.analyzeZhi(yZhi, yearTargetZhis, isYearXiShen);
+
+if (currentDaYun && yGan === currentDaYun.gan && yZhi === currentDaYun.zhi) {
+yZhiRel.unshift({
+name: `⚠️ 岁运并临 (${yGan}${yZhi}重叠)`,
+rawKey: `${yGan}${yZhi}`,
+type: 'suiyun',
+index: 10.0
+});
+}
+
+const yearSolarRange = WuHuDunEngine.getDynamicSolarRange(targetYearNum, '寅');
+const springStart = yearSolarRange.split(' ')[0];
+
+document.getElementById('yearDetail').innerHTML = `
+<strong>${targetYearNum} 流年干支：</strong>${yGan}${yZhi}年 ${currentDaYun ? `<span style="font-size:12px; color:#007aff;">[处于 ${currentDaYun.ganZhi} 大运]</span>` : ''}<br/>
+<strong>立春起点：</strong><span class="date-range">约 ${springStart} 节点</span><br/>
+<strong>流年天干十神：</strong><span class="tag-shishen">${yShiShen}</span><br/>
+<strong>天干作用 (含大运)：</strong> ${renderRelationTags(yGanRel)}<br/>
+<strong>地支冲合 (按剧烈程度降序)：</strong><br/> ${renderRelationTags(yZhiRel)}
+${renderHighIndexAlerts(yZhiRel)}
+`;
+
+// 流月推演
+const targetMonthZhi = document.getElementById('targetMonthZhi').value;
+const monthGanZhiObj = WuHuDunEngine.getMonthGanZhi(yGan, targetMonthZhi);
+const solarDateRange = WuHuDunEngine.getDynamicSolarRange(targetYearNum, targetMonthZhi);
+
+let monthTargetGans = [...yearTargetGans, { name: `流年(${yGan}${yZhi})`, gan: yGan }];
+let monthTargetZhis = [...yearTargetZhis, { name: `流年(${yGan}${yZhi})`, zhi: yZhi }];
+
+const mGan = monthGanZhiObj.gan;
+const mZhiWX = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' }[targetMonthZhi];
+const isMonthSameOrSheng = (mZhiWX === dayWX || mZhiWX === { '金':'土','木':'水','水':'金','火':'木','土':'火' }[dayWX]);
+const isMonthXiShen = globalIsStrong ? !isMonthSameOrSheng : isMonthSameOrSheng;
+
+const mShiShen = ShiShenEngine.getShiShen(globalDayGan, mGan);
+const mGanRel = FullEarthEngine.analyzeGan(mGan, monthTargetGans);
+const mZhiRel = FullEarthEngine.analyzeZhi(targetMonthZhi, monthTargetZhis, isMonthXiShen);
+
+document.getElementById('monthDetail').innerHTML = `
+<strong>流月干支 (五虎遁)：</strong><span style="font-size:18px; font-weight:bold; color:#007aff;">${monthGanZhiObj.ganZhi}月</span><br/>
+<strong>对应公历日期：</strong><span class="date-range">${solarDateRange}</span><br/>
+<strong>流月天干十神：</strong><span class="tag-shishen">${mShiShen}</span><br/>
+<strong>月天干作用：</strong> ${renderRelationTags(mGanRel)}<br/>
+<strong>月地支冲合 (按剧烈程度降序)：</strong><br/> ${renderRelationTags(mZhiRel)}
+${renderHighIndexAlerts(mZhiRel)}
+`;
+
+// 渲染第四栏专项诊断
+const specialRes = calculateSpecialAspects(globalDayGan, mGan, targetMonthZhi, mZhiRel);
+document.getElementById('marriageAnalysisBox').innerHTML = specialRes.marriageText;
+document.getElementById('wealthAnalysisBox').innerHTML = specialRes.wealthText;
+document.getElementById('healthAnalysisBox').innerHTML = specialRes.healthText;
+
+const topZhiImpact = mZhiRel.length > 0 ? mZhiRel[0] : null;
+
+if (topZhiImpact && topZhiImpact.type === 'chong') {
+document.getElementById('animScene').innerText = "💥 ⚡ 🌊";
+document.getElementById('animTitle').innerText = `【${monthGanZhiObj.ganZhi}月】剧烈气场冲动 (指数: ${topZhiImpact.index.toFixed(1)})`;
+document.getElementById('animDesc').innerText = `在 ${solarDateRange} 期间，最突出的能量作用为：[${topZhiImpact.name}]。局势变动明显，宜稳中求进。`;
+} else if (topZhiImpact && topZhiImpact.type === 'xing') {
+document.getElementById('animScene').innerText = "⚖️ 🌀 🌪️";
+document.getElementById('animTitle').innerText = `【${monthGanZhiObj.ganZhi}月】引发相刑作用 (指数: ${topZhiImpact.index.toFixed(1)})`;
+document.getElementById('animDesc').innerText = `在 ${solarDateRange} 期间，最突出的能量作用为：[${topZhiImpact.name}]。注意情绪调适与事务细节。`;
+} else if (topZhiImpact && topZhiImpact.type === 'he') {
+document.getElementById('animScene').innerText = "💖 🤝 🏰";
+document.getElementById('animTitle').innerText = `【${monthGanZhiObj.ganZhi}月】磁场相合升温 (指数: ${topZhiImpact.index.toFixed(1)})`;
+document.getElementById('animDesc').innerText = `在 ${solarDateRange} 期间，最突出的能量作用为：[${topZhiImpact.name}]。利于沟通、合作与关系巩固。`;
+} else {
+document.getElementById('animScene').innerText = "🌱 🍵 📜";
+document.getElementById('animTitle').innerText = `【${monthGanZhiObj.ganZhi}月】运势平稳`;
+document.getElementById('animDesc').innerText = `在 ${solarDateRange} 期间，流月与四柱及大运未产生剧烈冲刑作用，气场顺畅。`;
+}
+}
+</script>
+
+</body>
+</html>
