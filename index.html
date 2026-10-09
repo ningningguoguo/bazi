@@ -100,7 +100,7 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 
 <div class="relation-box" style="background:#f0f9ff; border-left-color:#34c759; margin-top:16px;" id="baziFeatureBox">--</div>
 
-<h2 style="margin-top:24px;">第一栏：一生大运列表 (带十神与公历年份)</h2>
+<h2 style="margin-top:24px;">第一栏：一生大运列表 (带十神、公历年份与岁数)</h2>
 <div id="startYunInfo" style="font-size:13px; color:#666; margin-top:4px;">--</div>
 
 <div class="list-box" style="border-left-color:#ff9500;" id="dayunListBox">--</div>
@@ -160,7 +160,7 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 <div id="healthAnalysisBox" style="margin-top:4px;">--</div>
 </div>
 
-<div class="relation-box" style="background:#f0fdf4; border-left-color:#34c759; margin-top:10px;">
+<div class="relation-box" style="background:#f0f9ff; border-left-color:#34c759; margin-top:10px;">
 <strong>💰 财运与事业机遇专项解析：</strong>
 <div id="wealthAnalysisBox" style="margin-top:4px;">--</div>
 </div>
@@ -591,7 +591,6 @@ text += `<strong>对命主的影响：</strong>全盘地支通气合局，将【
 return text;
 }
 
-// 恢复第四栏的专项健康、财运、婚姻诊断函数
 function calculateSpecialAspects(dayGan, targetGan, targetZhi, zhiImpacts) {
 const targetGanShiShen = ShiShenEngine.getShiShen(dayGan, targetGan);
 const targetZhiWX = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' }[targetZhi];
@@ -610,7 +609,7 @@ marriageText = `• <strong>婚恋磁场平稳：</strong>流年/流月未对婚
 let wealthText = '';
 const wealthShiShens = ['正财', '偏财', '食神', '伤官'];
 if (wealthShiShens.includes(targetGanShiShen)) {
-wealthText = globalIsStrong ? `• <strong>【身强胜财】求财爆发期：</strong>极利于商业拓展、技能变现与项目落地！` : `• <strong>【身弱逢财】求财宜稳健：</strong>财源机会虽多,但宜合作稳妥，切忌盲目大举投资。`;
+wealthText = globalIsStrong ? `• <strong>【身强胜财】求财爆发期：</strong>极利于商业拓展、技能变现与项目落地！` : `• <strong>【身弱逢财】求财宜稳健：</strong>财源机会虽多，但宜合作稳妥，切忌盲目大举投资。`;
 } else if (targetGanShiShen === '劫财' || targetGanShiShen === '比肩') {
 wealthText = `• <strong>社交求财与防开支：</strong>同辈合作增多，但人情往来开销较大，注意合伙理财。`;
 } else {
@@ -658,10 +657,9 @@ document.getElementById('baziFeatureBox').innerHTML = generateBaziFeatures(lunar
 const yun = eightChar.getYun(genderVal);
 const daYunArray = yun.getDaYun();
 globalDaYunList = [];
-let dayunListHtml = '<strong>🚩 精准大运流水表 (真实公历年份区间)：</strong><ul>';
+let dayunListHtml = '<strong>🚩 精准大运流水表 (公历年份与岁数区间)：</strong><ul>';
 const currentYear = new Date().getFullYear();
 
-// 用最稳健的起始年份 + 10年递增算法，杜绝任何奇怪的错误
 let startAge = yun.getStartYear();
 let birthYearNum = isSolar ? y : lunarObj.getSolar().getYear();
 let firstYunYear = birthYearNum + startAge;
@@ -673,6 +671,10 @@ daYunArray.forEach((dy, index) => {
 if (index === 0) return;
 let startY = firstYunYear + (index - 1) * 10;
 let endY = startY + 9;
+
+// 计算该大运对应的虚岁或实足岁数区间
+let startA = startAge + (index - 1) * 10;
+let endA = startA + 9;
 
 const ganZhi = dy.getGanZhi();
 const dyGan = ganZhi.charAt(0);
@@ -690,7 +692,7 @@ shishen: shishen
 
 const isActive = currentYear >= startY && currentYear <= endY;
 const activeFlag = isActive ? ' <span style="color:#007aff; font-weight:bold;">[当前大运]</span>' : '';
-dayunListHtml += `<li>【${shishen}】<strong>${ganZhi}</strong> 运（${startY}年 ~ ${endY}年）${activeFlag}</li>`;
+dayunListHtml += `<li>【${shishen}】<strong>${ganZhi}</strong> 运（${startY}年 ~ ${endY}年，约 ${startA}岁 ~ ${endA}岁）${activeFlag}</li>`;
 });
 dayunListHtml += '</ul>';
 document.getElementById('dayunListBox').innerHTML = dayunListHtml;
