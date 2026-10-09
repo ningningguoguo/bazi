@@ -99,7 +99,7 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 <div class="relation-box" style="background:#fef2f2; border-left-color:#ff3b30; margin-top:16px;" id="baziSelfImpactBox">--</div>
 
 <div class="relation-box" style="background:#f0f9ff; border-left-color:#34c759; margin-top:16px;" id="baziFeatureBox">--</div>
-
+  
 <h2 style="margin-top:24px;">第一栏：一生大运列表 (带十神、公历年份与岁数)</h2>
 <div id="startYunInfo" style="font-size:13px; color:#666; margin-top:4px;">--</div>
 
@@ -170,6 +170,11 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 <div id="marriageAnalysisBox" style="margin-top:4px;">--</div>
 </div>
 
+ <h2 style="margin-top:24px;">第五栏：婚姻与配偶深度专项诊断</h2>
+<div class="relation-box" style="background:#fff1f2; border-left-color:#e11d48; margin-top:10px;">
+    <strong>💍 夫妻宫、配偶特征与正缘流年全解：</strong>
+    <div id="spouseAnalysisBox" style="margin-top:8px; line-height: 1.8; font-size: 14px;">--</div>
+</div>
 </div>
 
 <script>
@@ -745,6 +750,8 @@ document.getElementById('dayunListBox').innerHTML = dayunListHtml;
 
 updateMonthSection();
 document.getElementById('resultCard').style.display = 'block';
+
+document.getElementById('spouseAnalysisBox').innerHTML = generateDeepSpouseAnalysis(eightChar, globalGender);
 } catch(err) {
 console.error("排盘异常：", err);
 alert("排盘计算出现异常，请检查输入的年月日时辰是否正确。");
@@ -939,7 +946,200 @@ document.getElementById('animTitle').innerText = `【${monthGanZhiObj.ganZhi}月
 document.getElementById('animDesc').innerText = `在 ${solarDateRange} 期间，流月与四柱及大运未产生剧烈冲刑作用，气场顺畅。`;
 }
 }
+  
+/**
+ * 终极完整版：完美融合【配偶星意象】、【身材外貌年纪】、【相遇场景】、【夫妻宫】及【兼顾单身已婚的真实流年】
+ */
+function generateDeepSpouseAnalysis(eightChar, gender) {
+    const dayGan = eightChar.getDayGan(); // 日主（天干）
+    const dayZhi = eightChar.getDayZhi(); // 夫妻宫（日支）
+    const monthZhi = eightChar.getMonthZhi(); // 月支
+    
+    // 天干阴阳属性（0代表阳，1代表阴）
+    const ganYinYang = { '甲':0, '丙':0, '戊':0, '庚':0, '壬':0, '乙':1, '丁':1, '己':1, '辛':1, '癸':1 };
+    const ganWuXing = { '甲':'木', '乙':'木', '丙':'火', '丁':'火', '戊':'土', '己':'土', '庚':'金', '辛':'金', '壬':'水', '癸':'水' };
+    const wuXingKe = { '木':'土', '土':'水', '水':'火', '火':'金', '金':'木' }; // A克B
+    const tianGanHe = { '甲': '己', '己': '甲', '乙': '庚', '庚': '乙', '丙': '辛', '辛': '丙', '丁': '壬', '壬': '丁', '戊': '癸', '癸': '戊' };
+    
+    // 地支六合、六冲、三合局对照表
+    const zhiLiuHe = { '子':'丑', '丑':'子', '寅':'亥', '亥':'寅', '卯':'戌', '戌':'卯', '辰':'酉', '酉':'辰', '巳':'申', '申':'巳', '午':'未', '未':'午' };
+    const zhiLiuChong = { '子':'午', '午':'子', '丑':'未', '未':'丑', '寅':'申', '申':'寅', '卯':'酉', '酉':'卯', '辰':'戌', '戌':'辰', '巳':'亥', '亥':'巳' };
+    const zhiSanHe = {
+        '申': ['子', '辰'], '子': ['申', '辰'], '辰': ['申', '子'],
+        '亥': ['卯', '未'], '卯': ['亥', '未'], '未': ['亥', '卯'],
+        '寅': ['午', '戌'], '午': ['寅', '戌'], '戌': ['寅', '午'],
+        '巳': ['酉', '丑'], '酉': ['巳', '丑'], '丑': ['巳', '酉']
+    };
+
+    const dayWX = ganWuXing[dayGan];
+    
+    // 1. 获取四柱天干，精准定位配偶星出现位置
+    const yearGan = eightChar.getYearGan();
+    const monthGan = eightChar.getMonthGan();
+    const timeGan = eightChar.getTimeGan();
+    
+    const allGansWithPosition = [
+        { pos: '年柱（代表少年、早年或远方，约1~18岁区间）', gan: yearGan },
+        { pos: '月柱（代表青年、职场门户，约19~35岁适婚期）', gan: monthGan },
+        { pos: '时柱（代表中晚年、较晚阶段，36岁以后）', gan: timeGan }
+    ];
+    
+    let spouseTargetWX = "";
+    if (gender === '男') {
+        spouseTargetWX = wuXingKe[dayWX]; // 男命克者为财
+    } else {
+        for (let wx in wuXingKe) { // 女命克我者为官杀
+            if (wuXingKe[wx] === dayWX) spouseTargetWX = wx;
+        }
+    }
+    
+    let foundPositions = [];
+    let detailedStars = [];
+    
+    allGansWithPosition.forEach(item => {
+        if (ganWuXing[item.gan] === spouseTargetWX) {
+            foundPositions.push(item.pos);
+            const isYinYangDiff = (ganYinYang[dayGan] !== ganYinYang[item.gan]);
+            let specificType = "";
+            if (gender === '男') {
+                specificType = isYinYangDiff ? "正财" : "偏财";
+            } else {
+                specificType = isYinYangDiff ? "正官" : "七杀";
+            }
+            detailedStars.push({ gan: item.gan, type: specificType });
+        }
+    });
+
+    let spouseRoleName = (gender === '男') ? "妻星（正/偏财）" : "夫星（正官/七杀）";
+    let timingAnalysis = "";
+    
+    if (foundPositions.length > 0) {
+        timingAnalysis = `⏱️ <strong>【缘分底色与出现阶段（基于四柱定位）】</strong><br>
+        您的${spouseRoleName}出现在了：<strong>${foundPositions.join('、')}</strong>。<br>
+        <em>命理解读：</em>这意味着您在生命中接触到正缘磁场的契机偏向于<strong>${foundPositions.some(p => p.includes('年柱')) ? '较早，可能在学生时代或步入社会之初便有心动或初缘萌芽' : foundPositions.some(p => p.includes('月柱')) ? '标准的青年适婚期（大体在19~35岁之间），在职场、社会交往中遇到正缘的概率最高、最合时宜' : '相对偏晚或属于大器晚成型（36岁之后更显稳定与成熟）'}</strong>。`;
+    } else {
+        timingAnalysis = `⏱️ <strong>【缘分底色与出现阶段（基于四柱定位）】</strong><br>
+        您的${spouseRoleName}未直接透在天干，而是深藏于地支（如夫妻宫或月令藏干中）。这通常意味着您的情感缘分往往属于厚积薄发、水到渠成型。`;
+    }
+
+    // 2. 星情与天干五合解读
+    let starDetailText = "";
+    if (detailedStars.length > 0) {
+        starDetailText = detailedStars.map(s => {
+            if (s.type === '正财') return `天干透出【${s.gan}】为<strong>正财</strong>，代表伴侣多属于顾家、贤惠、精打细算、传统务实型。`;
+            if (s.type === '偏财') return `天干透出【${s.gan}】为<strong>偏财</strong>，代表伴侣社交能力强、精明能干、富有个人魅力。`;
+            if (s.type === '正官') return `天干透出【${s.gan}】为<strong>正官</strong>，代表伴侣多正直稳重、有责任感、遵纪守法。`;
+            if (s.type === '七杀') return `天干透出【${s.gan}】为<strong>七杀</strong>，代表伴侣性格果断、有魄力、事业心极强。`;
+        }).join("<br>");
+    } else {
+        starDetailText = `天干未直接透出配偶星，主要通过地支夫妻宫与藏干来体现伴侣特征。`;
+    }
+
+    let ganHeAnalysis = "";
+    let hasGanHe = false;
+    detailedStars.forEach(s => {
+        if (tianGanHe[dayGan] === s.gan) hasGanHe = true;
+    });
+
+    if (hasGanHe) {
+        ganHeAnalysis = `🔥 <strong>【特别磁场提示：天干相合】</strong><br>
+        您的日主【${dayGan}】与天干配偶星【${tianGanHe[dayGan]}】构成了<strong>天干五合</strong>！彼此之间有天然的磁场吸引力，默契度极高。`;
+    } else {
+        ganHeAnalysis = `💡 <strong>【天干磁场提示】</strong><br>
+        您的日主与天干配偶星未直接构成天干五合，情感多通过现实生活中的磨合与性格互补来稳固。`;
+    }
+
+    // 3. 夫妻宫特征库（包含性格、身材外貌、年纪倾向）
+    const zhiDetails = {
+        '子': { trait: "聪明机灵，皮肤白皙，为人敏锐温柔。", height: "中等偏下或身材匀称，气质清秀干净", ageDiff: "倾向于找年龄相仿或小几岁的伴侣" },
+        '丑': { trait: "为人敦厚老实，务实顾家，外表稳重，做事有条理。", height: "中等身材，骨骼较结实，外表踏实", ageDiff: "倾向于找成熟稳重、比自己大或同龄的伴侣" },
+        '寅': { trait: "积极进取，热情大方，有主见和领导能力。", height: "身材较高挑，体态挺拔，精气神足", ageDiff: "倾向于找有上进心、观念契合的伴侣" },
+        '卯': { trait: "温和文雅，心思细腻，富有同情心和艺术气息。", height: "身材修长匀称，长相清秀文雅", ageDiff: "倾向于年龄相当，或受到对方细致照顾" },
+        '辰': { trait: "气场稳重，包容心强，具有较强的责任感和事业心。", height: "中等偏高，体态富态或匀称大气", ageDiff: "多得成熟照顾，或伴侣能力较强" },
+        '巳': { trait: "热情开朗，反应敏捷，善于交际，性子稍急。", height: "中等身材，精干利落，外表亮眼", ageDiff: "年龄差距可大可小，多因才华或社交吸引" },
+        '午': { trait: "阳光自信，积极热烈，注重仪表和生活品质，社交圈广。", height: "身材匀称，精气神十足，穿着得体", ageDiff: "倾向于轰轰烈烈的恋爱，多同龄" },
+        '未': { trait: "温和坚韧，顾家孝顺，善于理财和包容，外表随和内敛。", height: "中等身材，外表朴实耐看", ageDiff: "伴侣多务实，懂得体贴照顾家庭" },
+        '申': { trait: "机智果断，做事雷厉风行，精明能干，适应能力极强。", height: "身材结实，动作敏捷，干练利落", ageDiff: "伴侣多为职场精英或技术能手" },
+        '酉': { trait: "讲究生活情调，仪态端庄，做事追求完美。", height: "身材秀气，气质干净，注重仪表细节", ageDiff: "多配外形出众、注重生活品质的伴侣" },
+        '戌': { trait: "忠诚正直，讲义气，有责任担当，性格较为主观坚毅。", height: "中等或偏高，身形健硕，很有安全感", ageDiff: "倾向于找成熟稳重、能互相给安全感的伴侣" },
+        '亥': { trait: "随和包容，心地善良，心思纯净，福气较好，不喜争执。", height: "中等身材，略显富态，面相温和有福气", ageDiff: "伴侣多温和善良，家庭氛围融洽" }
+    };
+
+    const currentZhiInfo = zhiDetails[dayZhi] || { trait: "性格独立，需在磨合中相处。", height: "中等身材", ageDiff: "缘分随和" };
+
+    // 4. 相遇场景
+    const meetingScenes = [
+        "多通过工作职场、业务往来、或经由同事、上司介绍相识。",
+        "多在社交聚会、朋友婚礼、公开活动或通过网络兴趣圈子结缘。",
+        "多在求学、培训、出差旅行或文化活动场所中偶然相遇。",
+        "具有一定的缘分巧合，可能在某次突发的变动、聚会或经长辈热心撮合而迅速拉近距离。"
+    ];
+    const sceneIndex = (dayZhi.charCodeAt(0) + monthZhi.charCodeAt(0)) % meetingScenes.length;
+    const matchedScene = meetingScenes[sceneIndex];
+
+    // 5. 动态计算接下来的真实流年（兼顾单身与已婚状态）
+    const currentYear = new Date().getFullYear();
+    const branchList = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    const getYearBranch = (y) => {
+        const baseYear = 2024;
+        const baseIdx = 4;
+        let diff = (y - baseYear) % 12;
+        let idx = (baseIdx + diff) % 12;
+        if (idx < 0) idx += 12;
+        return branchList[idx];
+    };
+
+    let dynamicYearAnalysis = [];
+    for (let i = 0; i < 5; i++) {
+        let targetY = currentYear + i;
+        let yZhi = getYearBranch(targetY);
+        let triggerType = "";
+        let reason = "";
+
+        if (zhiLiuHe[dayZhi] === yZhi) {
+            triggerType = "✨ 【合局牵绊·甜蜜与凝聚期】";
+            reason = `流年地支【${yZhi}】与您的夫妻宫【${dayZhi}】构成<strong>六合</strong>。<br><em>状态指引：</em>若您单身，此年是结缘、脱单的黄金机遇；若您已婚或已有伴侣，则代表感情加温、默契提升、生活状态更加融洽甜蜜。`;
+        } else if (zhiSanHe[dayZhi] && zhiSanHe[dayZhi].includes(yZhi)) {
+            triggerType = "🌟 【三合汇聚·关系深化期】";
+            reason = `流年地支【${yZhi}】与您的夫妻宫【${dayZhi}】形成<strong>三合局</strong>。<br><em>状态指引：</em>感情磁场活跃，单身者易遇合心意对象；已婚者则利于共同拓展生活圈、加深家庭凝聚力。`;
+        } else if (zhiLiuChong[dayZhi] === yZhi) {
+            triggerType = "⚡ 【冲动宫位·生活变动与经营期】";
+            reason = `流年地支【${yZhi}】与您的夫妻宫【${dayZhi}】构成<strong>六冲</strong>。<br><em>状态指引：</em>冲代表“动”，单身者易有外界环境带来的突发恋情；而已婚者通常对应生活环境的变动（如搬家、置业、出差、异地或生活重构），日常相处中多一份包容与有效沟通即可化解摩擦。`;
+        } else {
+            triggerType = "🍃 【平稳维系期】";
+            reason = `流年地支为【${yZhi}】，与夫妻宫关系平稳，日常以温馨陪伴、柴米油盐的稳步经营为主。`;
+        }
+
+        dynamicYearAnalysis.push(`<li><strong>${targetY}年（${yZhi}年）</strong>：${triggerType}：${reason}</li>`);
+    }
+
+    // 6. 组装最终输出
+    return `
+        <p><strong>🎯 1. 确定配偶星、缘分底色与天干五合：</strong><br>
+        您是【${gender}命】，八字中以<strong>${spouseRoleName}</strong>代表伴侣。<br>
+        <em>星情解读：</em>${starDetailText}<br><br>
+        ${timingAnalysis}<br><br>
+        ${ganHeAnalysis}</p>
+        
+        <p><strong>👥 2. 夫妻宫地支解析（性格与日常相处原貌）：</strong><br>
+        您的夫妻宫（日支）坐【<strong>${dayZhi}</strong>】，伴侣在朝夕相处时的具体性格表现为：${currentZhiInfo.trait}</p>
+        
+        <p><strong>📏 3. 身材、外貌与年龄缘分倾向：</strong><br>
+        外在形象上，伴侣的身材与外貌多表现为：<strong>${currentZhiInfo.height}</strong>。<br>
+        在年龄缘分上：${currentZhiInfo.ageDiff}。</p>
+        
+        <p><strong>🌸 4. 潜在相遇或缘分轨迹：</strong><br>
+        若处于寻觅阶段，相遇轨迹多为：<strong>${matchedScene}</strong></p>
+        
+        <p><strong>✨ 5. 近期真实流年运势指引（兼顾单身与已婚状态）：</strong><br>
+        根据您的夫妻宫【<strong>${dayZhi}</strong>】与未来几年的真实地支互动，为您解析近期的运势节点如下：<br>
+        <ul style="margin-top:6px; padding-left:20px; line-height: 1.8;">
+            ${dynamicYearAnalysis.join('')}
+        </ul></p>
+    `;
+}
 </script>
 
 </body>
 </html>
+
