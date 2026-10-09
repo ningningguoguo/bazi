@@ -116,7 +116,7 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 
 <div class="philosophy-tips">
 💡 <strong>命理视角小贴士：</strong><br/>
-命理学中“冲、刑、合”本质上是<strong>气场能量的剧烈转化与结构重组</strong>，并非绝对的吉凶。<br/>
+命理学中“冲,、刑、合”本质上是<strong>气场能量的剧烈转化与结构重组</strong>，并非绝对的吉凶。<br/>
 • <strong>逢冲主“动”：</strong>往往打破僵局，带来跳槽、搬迁、脱单或事业新转机（“不冲不发”）；<br/>
 • <strong>逢刑主“塑”：</strong>代表细节磨合与能力重构，是自我升级与规则完善的契机。<br/>
 顺应能量，主动变通，方能变压力为破局之力。
@@ -546,6 +546,20 @@ const dayWX = ShiShenEngine.ganWuXing[dayGan];
 const solar = lunarObj.getSolar();
 const strengthAnalysis = analyzeDayStrength(eightChar);
 
+// 恢复调候与气候分析（金寒水冷、木火通明、火炎土燥等）
+let tiaoHouText = "";
+if (['亥', '子', '丑'].includes(monthZhi) && ['庚', '辛', '壬', '癸'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【金寒水冷】之象。冬金或水旺之命，命局偏寒，喜见火（丙丁）温燠调候，方能生机勃勃、才华舒展。";
+} else if (['寅', '卯', '巳', '午'].includes(monthZhi) && ['甲', '乙', '丙', '丁'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【木火通明】或气势秀发之象。木火相生，主思维敏捷、才华横溢、光明磊落。";
+} else if (['巳', '午', '未'].includes(monthZhi) && ['戊', '己', '丙', '丁'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【火炎土燥】之象。夏季火土过旺，性格热烈急躁，喜水滋润、金泄土气以成既济。";
+} else if (['申', '酉'].includes(monthZhi) && ['庚', '辛'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【金白水清】或刚金肃杀之象。秋金得令，主意志坚韧、处事果断，宜水来吐秀。";
+} else {
+  tiaoHouText = "• <strong>调候格局评估：</strong>四季气候平和，五行流转有序，注重原局各柱之间的组合情态。";
+}
+
 let text = `<strong>📅 生辰历法双对照：</strong><br/>`;
 text += `• <strong>公历 (阳历)：</strong>${solar.getYear()}年${solar.getMonth()}月${solar.getDay()}日<br/>`;
 text += `• <strong>农历 (阴历)：</strong>${lunarObj.getYearInGanZhi()}年 ${lunarObj.getMonthInChinese()}月${lunarObj.getDayInChinese()}<br/><br/>`;
@@ -553,6 +567,7 @@ text += `<strong>📜 八字原局格局与身强身弱诊断：</strong><br/>`;
 text += `• <strong>日主五行：</strong>【${dayGan}】属 ${dayWX}，生于【${monthZhi}月】。<br/>`;
 text += `• <strong>日主旺衰：</strong><span style="font-size:15px; font-weight:bold; color:#007aff;">【${strengthAnalysis.status}】</span><br/>`;
 text += `• <strong>判定原因：</strong>${strengthAnalysis.reasonText}。<br/>`;
+text += `${tiaoHouText}<br/>`;
 text += `• <strong>喜用建议：</strong>${strengthAnalysis.suggest}`;
 return text;
 }
@@ -672,7 +687,6 @@ if (index === 0) return;
 let startY = firstYunYear + (index - 1) * 10;
 let endY = startY + 9;
 
-// 计算该大运对应的虚岁或实足岁数区间
 let startA = startAge + (index - 1) * 10;
 let endA = startA + 9;
 
@@ -716,9 +730,20 @@ if (item.type === 'xing') cls = item.isXi ? 'tag-he' : 'tag-xing';
 if (item.type === 'hai') cls = 'tag-hai';
 if (item.type === 'hui') cls = 'tag-hui';
 
+// 核心优化：只有当冲刑等作用的【指数大于 9.0】时，才渲染详细的喜忌神底层原理剖析
+let detailContent = '';
+if (item.index > 9.0 && item.detailExplanation) {
+  detailContent = `<div style="font-size:12px; color:#1c1c1e; margin-top:4px; padding:6px 8px; background:#fff; border-radius:4px; border:1px solid #d1d1d6; line-height:1.6;">
+    <strong>🔬 高强度刑冲深度剖析（喜忌联动判定）：</strong><br/>
+    ${item.detailExplanation}
+  </div>`;
+} else {
+  detailContent = `<div style="font-size:12px; color:#555; margin-top:2px; line-height:1.5;">${item.detailExplanation || ''}</div>`;
+}
+
 html += `<div style="margin-top:6px; margin-bottom:6px;">
 <span class="relation-tag ${cls}">${item.name} <span class="index-badge">指数:${item.index.toFixed(1)}</span></span>
-<div style="font-size:12px; color:#444; margin-top:2px; line-height:1.5;">${item.detailExplanation || ''}</div>
+${detailContent}
 </div>`;
 });
 return html;
@@ -782,8 +807,8 @@ if (item.type === 'hui' && item.targetWX) {
 } else {
   let cleanKey = item.rawKey;
   let baseTxt = ImpactDictionary[cleanKey] || '气场转换重组。';
-  let xiContext = item.isXi ? '【喜神引动】：此冲刑能激发潜能、打破僵局。' : '【忌神引动】：气场受制，需防范细节摩擦。';
-  item.detailExplanation = `${xiContext} 原理解析：${baseTxt}`;
+  let xiContext = item.isXi ? '【喜神逢冲/刑】此能量对身弱/身旺格局起到了平衡或激发潜能的作用，主打破僵局、破局立功。' : '【忌神逢冲/刑】此能量加剧了原局失衡或引发了气场动摇，需防范外部扰动与压力。';
+  item.detailExplanation = `${xiContext} 命理底层原理：${baseTxt}`;
 }
 });
 
@@ -821,8 +846,8 @@ if (item.type === 'hui' && item.targetWX) {
 } else {
   let cleanKey = item.rawKey;
   let baseTxt = ImpactDictionary[cleanKey] || '气场转换重组。';
-  let xiContext = item.isXi ? '【流月喜神引动】：利于把握机遇。' : '【流月忌神引动】：防范外部扰动。';
-  item.detailExplanation = `${xiContext} 原理：${baseTxt}`;
+  let xiContext = item.isXi ? '【流月喜神引动】：利于把握机遇、破局。' : '【流月忌神引动】：防范外部扰动与摩擦。';
+  item.detailExplanation = `${xiContext} 命理底层原理：${baseTxt}`;
 }
 });
 
