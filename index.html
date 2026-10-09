@@ -948,7 +948,7 @@ document.getElementById('animDesc').innerText = `在 ${solarDateRange} 期间，
 }
   
 /**
- * 终极完整版：完美融合【配偶星意象】、【身材外貌年纪】、【相遇场景】、【夫妻宫】及【兼顾单身已婚的真实流年】
+ * 终极完整版：完美融合【配偶星意象】、【身材外貌年纪】、【相遇场景】、【夫妻宫】、【真实流年】及【十神正偏星/专一度剖析】
  */
 function generateDeepSpouseAnalysis(eightChar, gender) {
     const dayGan = eightChar.getDayGan(); // 日主（天干）
@@ -995,6 +995,8 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
     
     let foundPositions = [];
     let detailedStars = [];
+    let zhengCount = 0; // 正星计数（正财/正官）
+    let pianCount = 0;  // 偏星计数（偏财/七杀）
     
     allGansWithPosition.forEach(item => {
         if (ganWuXing[item.gan] === spouseTargetWX) {
@@ -1007,6 +1009,12 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
                 specificType = isYinYangDiff ? "正官" : "七杀";
             }
             detailedStars.push({ gan: item.gan, type: specificType });
+
+            if (isYinYangDiff) {
+                zhengCount++;
+            } else {
+                pianCount++;
+            }
         }
     });
 
@@ -1113,7 +1121,31 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
         dynamicYearAnalysis.push(`<li><strong>${targetY}年（${yZhi}年）</strong>：${triggerType}：${reason}</li>`);
     }
 
-    // 6. 组装最终输出
+    // 6. 男女通用的【正星 vs 偏星（专一度与社交魅力）深度辨析】
+    let zhengName = gender === '男' ? "正财" : "正官";
+    let pianName = gender === '男' ? "偏财" : "七杀";
+    let tenGodsText = "";
+
+    if (zhengCount > 0 && pianCount === 0) {
+        tenGodsText = `<strong>【格局特征：清纯正星格】</strong><br>
+        命局天干以【${zhengName}】为主，感情磁场纯粹、务实。<br>
+        <em>情感态度与相处模式：</em>对待感情极具契约精神与责任感，看重家庭稳定，追求细水长流的陪伴，是极其踏实可靠的伴侣类型。`;
+    } else if (pianCount > 0 && zhengCount === 0) {
+        tenGodsText = `<strong>【格局特征：偏星活跃（如${pianName}较显）】</strong><br>
+        命局天干显现【${pianName}】磁场。<br>
+        <em>社交魅力与人际磁场：</em>这种配置代表异性缘分较为活跃，在社交圈中常展现出独特的个人魅力。`;
+    } else if (zhengCount > 0 && pianCount > 0) {
+        tenGodsText = `<strong>【格局特征：正偏兼备】</strong><br>
+        命局中正星（${zhengName}）与偏星（${pianName}）同时透出。<br>
+        <em>感情观：</em>内心既向往稳定、安全的家庭归宿，又容易被有才华、个性独特的人吸引。<br>
+        <em>状态指引：</em>在情感成熟的过程中，学会清晰划分“责任与社交边界”，便能兼顾稳定的家庭与和谐的人际关系。`;
+    } else {
+        tenGodsText = `<strong>【格局特征：缘星深藏】</strong><br>
+        配偶星未直接透在天干，多藏于地支藏干中。<br>
+        <em>情感态度与相处模式：</em>情感表达相对内敛、含蓄，不喜招摇，注重内心世界的深层契合，感情往往属于细水长流、极其稳固型。`;
+    }
+
+    // 7. 组装最终输出
     return `
         <p><strong>🎯 1. 确定配偶星、缘分底色与天干五合：</strong><br>
         您是【${gender}命】，八字中以<strong>${spouseRoleName}</strong>代表伴侣。<br>
@@ -1131,7 +1163,10 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
         <p><strong>🌸 4. 潜在相遇或缘分轨迹：</strong><br>
         若处于寻觅阶段，相遇轨迹多为：<strong>${matchedScene}</strong></p>
         
-        <p><strong>✨ 5. 近期真实流年运势指引（兼顾单身与已婚状态）：</strong><br>
+        <p><strong>⚖️ 5. 异性缘磁场深度剖析（正星 vs 偏星）：</strong><br>
+        ${tenGodsText}</p>
+        
+        <p><strong>✨ 6. 近期真实流年运势指引（兼顾单身与已婚状态）：</strong><br>
         根据您的夫妻宫【<strong>${dayZhi}</strong>】与未来几年的真实地支互动，为您解析近期的运势节点如下：<br>
         <ul style="margin-top:6px; padding-left:20px; line-height: 1.8;">
             ${dynamicYearAnalysis.join('')}
