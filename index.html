@@ -428,38 +428,55 @@ const sameMe = dayWX;
 
 let score = 0;
 let reasons = [];
+
+// 1. 得令（月令）
 const monthCangGans = ShiShenEngine.zhiCangGan[monthZhi] || [];
 const isDeLing = monthCangGans.some(g => ShiShenEngine.ganWuXing[g] === sameMe || ShiShenEngine.ganWuXing[g] === shengMe);
-
 if (isDeLing) {
-score += 45;
-reasons.push(`得令（生于【${monthZhi}月】，月令带有生扶日主的${shengMe}/${sameMe}五行能量）`);
+  score += 40;
+  reasons.push(`得令（生于【${monthZhi}月】，月令生扶日主）`);
 } else {
-reasons.push(`失令（生于【${monthZhi}月】，月令五行耗泄日主【${dayGan}${dayWX}】）`);
+  reasons.push(`失令（生于【${monthZhi}月】，月令耗泄日主）`);
 }
 
+// 2. 得地（地支通根）
 let genCount = 0;
 [eightChar.getYearZhi(), eightChar.getMonthZhi(), eightChar.getDayZhi(), eightChar.getTimeZhi()].forEach(z => {
-const cgs = ShiShenEngine.zhiCangGan[z] || [];
-if (cgs.some(g => ShiShenEngine.ganWuXing[g] === sameMe || ShiShenEngine.ganWuXing[g] === shengMe)) {
-genCount++;
-}
+  const cgs = ShiShenEngine.zhiCangGan[z] || [];
+  if (cgs.some(g => ShiShenEngine.ganWuXing[g] === sameMe || ShiShenEngine.ganWuXing[g] === shengMe)) {
+    genCount++;
+  }
 });
-score += genCount * 8;
+score += genCount * 10;
 if (genCount > 0) {
-reasons.push(`得地（在四柱地支中有 ${genCount} 处生扶/通根）`);
+  reasons.push(`得地（地支有 ${genCount} 处通根/生扶）`);
 } else {
-reasons.push(`失地（地支缺乏日主的同类通根）`);
+  reasons.push(`失地（地支少根气）`);
 }
 
-let status = score >= 48 ? '身旺' : (score >= 40 ? '中和' : '身弱');
-globalIsStrong = (score >= 40);
+// 3. 补充：得势（天干帮扶/印比透干）
+let ganCount = 0;
+[eightChar.getYearGan(), eightChar.getMonthGan(), eightChar.getTimeGan()].forEach(g => {
+  const gWX = ShiShenEngine.ganWuXing[g];
+  if (gWX === sameMe || gWX === shengMe) {
+    ganCount++;
+  }
+});
+score += ganCount * 10;
+if (ganCount > 0) {
+  reasons.push(`得势（天干有 ${ganCount} 处比劫或印星透干帮身）`);
+} else {
+  reasons.push(`失势（天干多克泄耗）`);
+}
+
+let status = score >= 50 ? '身旺' : (score >= 38 ? '中和' : '身弱');
+globalIsStrong = (score >= 38);
 let suggest = globalIsStrong ? `喜克泄耗（喜财星、官杀、食伤）；忌再逢印星生身、比劫帮身。` : `喜生扶（喜印星生身、比劫帮身）；忌官杀重克、财星重耗、食伤重泄。`;
 
 return {
-status: status,
-reasonText: reasons.join('；'),
-suggest: suggest
+  status: status,
+  reasonText: reasons.join('；'),
+  suggest: suggest
 };
 }
 
