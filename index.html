@@ -546,17 +546,33 @@ const dayWX = ShiShenEngine.ganWuXing[dayGan];
 const solar = lunarObj.getSolar();
 const strengthAnalysis = analyzeDayStrength(eightChar);
 
+// 全景式四季十二月令四字调候与气候气场评估
 let tiaoHouText = "";
-if (['亥', '子', '丑'].includes(monthZhi) && ['庚', '辛', '壬', '癸'].includes(dayGan)) {
-  tiaoHouText = "• <strong>调候格局评估：</strong>【金寒水冷】之象。冬金或水旺之命，命局偏寒，喜见火（丙丁）温燠调候，方能生机勃勃、才华舒展。";
-} else if (['寅', '卯', '巳', '午'].includes(monthZhi) && ['甲', '乙', '丙', '丁'].includes(dayGan)) {
-  tiaoHouText = "• <strong>调候格局评估：</strong>【木火通明】或气势秀发之象。木火相生，主思维敏捷、才华横溢、光明磊落。";
-} else if (['巳', '午', '未'].includes(monthZhi) && ['戊', '己', '丙', '丁'].includes(dayGan)) {
-  tiaoHouText = "• <strong>调候格局评估：</strong>【火炎土燥】之象。夏季火土过旺，性格热烈急躁，喜水滋润、金泄土气以成既济。";
-} else if (['申', '酉'].includes(monthZhi) && ['庚', '辛'].includes(dayGan)) {
-  tiaoHouText = "• <strong>调候格局评估：</strong>【金白水清】或刚金肃杀之象。秋金得令，主意志坚韧、处事果断，宜水来吐秀。";
+const isSpring = ['寅', '卯', '辰'].includes(monthZhi);
+const isSummer = ['巳', '午', '未'].includes(monthZhi);
+const isAutumn = ['申', '酉', '戌'].includes(monthZhi);
+const isWinter = ['亥', '子', '丑'].includes(monthZhi);
+
+if (isWinter && ['庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁', '戊', '己'].includes(dayGan)) {
+  if (['壬', '癸', '庚', '辛'].includes(dayGan)) {
+    tiaoHouText = "• <strong>调候格局评估：</strong>【金寒水冷】之象。冬季水势汪洋、金气冰寒，命局偏寒，极喜见火（丙丁）温燠暖局，方能生机勃勃、才华舒展。";
+  } else {
+    tiaoHouText = "• <strong>调候格局评估：</strong>【冬阳暖局】之象。严冬冰冻，喜丙丁火解冻暖土融冰，方能化湿生金、生机显现。";
+  }
+} else if (isSpring && ['甲', '乙'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【木繁向荣】（或春生向阳）之象。春木正值当令生发，喜丙丁火照拂成【木火通明】，主思维敏捷、才华秀发。";
+} else if (isSpring && ['壬', '癸'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【水木清华】之象。水生春木，气势秀发，主聪明好学、文笔极佳、灵气逼人。";
+} else if (isSummer && ['丙', '丁', '戊', '己'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【火炎土燥】（或稼穑炎上）之象。夏季火土过旺，烈日炎炎，急需水（壬癸）滋润调候或金泄土气，方成既济。";
+} else if (isSummer && ['庚', '辛', '壬', '癸', '甲', '乙'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【炎夏喜水】之象。夏月金水易涸、木易 焚，最喜见水滋根润叶或金水相生，主绝处逢生、转危为安。";
+} else if (isAutumn && ['庚', '辛'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【金白水清】（或刚金肃杀）之象。秋金得令锐利，若见水来吐秀，主意志坚韧、才华清高、处事果断。";
+} else if (isAutumn && ['甲', '乙'].includes(dayGan)) {
+  tiaoHouText = "• <strong>调候格局评估：</strong>【秋木雕零】之象。秋金克木，枝叶受损，喜火制金（食伤制杀）或水通关，主历经磨炼而成大器。";
 } else {
-  tiaoHouText = "• <strong>调候格局评估：</strong>四季气候平和，五行流转有序，注重原局各柱之间的组合情态。";
+  tiaoHouText = "• <strong>调候格局评估：</strong>四季气候平和，五行流转有序，注重原局各柱之间的组合情态与燥湿平衡。";
 }
 
 let text = `<strong>📅 生辰历法双对照：</strong><br/>`;
