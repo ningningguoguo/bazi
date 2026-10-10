@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -176,7 +178,7 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
     <div id="spouseAnalysisBox" style="margin-top:8px; line-height: 1.8; font-size: 14px;">--</div>
 </div>
 </div>
-
+  
 <script>
 // 十神算法与藏干
 const ShiShenEngine = {
@@ -673,91 +675,111 @@ return { marriageText, wealthText, healthText };
 }
 
 function runAll() {
-try {
-const isSolar = document.getElementById('calendarType').value === 'solar';
-globalGender = document.getElementById('gender').value;
-const genderVal = globalGender === '男' ? 1 : 0;
-const y = parseInt(document.getElementById('year').value) || 2000;
-const m = parseInt(document.getElementById('month').value) || 1;
-const d = parseInt(document.getElementById('day').value) || 1;
-const h = parseInt(document.getElementById('hourSelect').value) || 0;
+    try {
+        const isSolar = document.getElementById('calendarType').value === 'solar';
+        globalGender = document.getElementById('gender').value;
+        const genderVal = globalGender === '男' ? 1 : 0;
+        const y = parseInt(document.getElementById('year').value) || 2000;
+        const m = parseInt(document.getElementById('month').value) || 1;
+        const d = parseInt(document.getElementById('day').value) || 1;
+        const h = parseInt(document.getElementById('hourSelect').value) || 0;
 
-populateYearSelect(y);
+        populateYearSelect(y);
 
-let lunarObj = isSolar ? Solar.fromYmdHms(y, m, d, h, 0, 0).getLunar() : Lunar.fromYmdHms(y, m, d, h, 0, 0);
-const eightChar = lunarObj.getEightChar();
+        let lunarObj = isSolar ? Solar.fromYmdHms(y, m, d, h, 0, 0).getLunar() : Lunar.fromYmdHms(y, m, d, h, 0, 0);
+        const eightChar = lunarObj.getEightChar();
 
-globalDayGan = eightChar.getDayGan();
-globalFourGans = [
-{ name: '年干', gan: eightChar.getYearGan() },
-{ name: '月干', gan: eightChar.getMonthGan() },
-{ name: '日主', gan: eightChar.getDayGan() },
-{ name: '时干', gan: eightChar.getTimeGan() }
-];
+        globalDayGan = eightChar.getDayGan();
+        globalFourGans = [
+            { name: '年干', gan: eightChar.getYearGan() },
+            { name: '月干', gan: eightChar.getMonthGan() },
+            { name: '日主', gan: eightChar.getDayGan() },
+            { name: '时干', gan: eightChar.getTimeGan() }
+        ];
 
-globalFourZhis = [
-{ name: '年支', zhi: eightChar.getYearZhi() },
-{ name: '月支', zhi: eightChar.getMonthZhi() },
-{ name: '日支', zhi: eightChar.getDayZhi() },
-{ name: '时支', zhi: eightChar.getTimeZhi() }
-];
+        globalFourZhis = [
+            { name: '年支', zhi: eightChar.getYearZhi() },
+            { name: '月支', zhi: eightChar.getMonthZhi() },
+            { name: '日支', zhi: eightChar.getDayZhi() },
+            { name: '时支', zhi: eightChar.getTimeZhi() }
+        ];
 
-document.getElementById('baziStructureBox').innerHTML = generateBaziStructureList(eightChar);
-document.getElementById('baziSelfImpactBox').innerHTML = analyzeBaziSelfImpacts(eightChar);
-document.getElementById('baziFeatureBox').innerHTML = generateBaziFeatures(lunarObj, eightChar);
+        document.getElementById('baziStructureBox').innerHTML = generateBaziStructureList(eightChar);
+        document.getElementById('baziSelfImpactBox').innerHTML = analyzeBaziSelfImpacts(eightChar);
+        document.getElementById('baziFeatureBox').innerHTML = generateBaziFeatures(lunarObj, eightChar);
 
-const yun = eightChar.getYun(genderVal);
-const daYunArray = yun.getDaYun();
-globalDaYunList = [];
-let dayunListHtml = '<strong>🚩 精准大运流水表 (公历年份与岁数区间)：</strong><ul>';
-const currentYear = new Date().getFullYear();
+        // ==========================================================
+        // 🌟 核心升级：精准对接历法库起运时间与月份
+        // ==========================================================
+        const yun = eightChar.getYun(genderVal);
+        const daYunArray = yun.getDaYun();
+        globalDaYunList = [];
 
-let startAge = yun.getStartYear();
-let birthYearNum = isSolar ? y : lunarObj.getSolar().getYear();
-let firstYunYear = birthYearNum + startAge;
+        const startSolar = yun.getStartSolar(); 
+        const firstYunYear = startSolar.getYear(); // 精确的起运公历年
+        const startMonth = startSolar.getMonth();  // 精确的起运公历月（同步交运节点）
+        const startAge = yun.getStartYear();       // 起运岁数
+        const birthMonthNum = m;                   // 出生月份
 
-let startYearStr = `约 ${firstYunYear} 年前后交运 (起运岁数：${startAge}岁)`;
-document.getElementById('startYunInfo').innerText = `起运节点：${startYearStr}`;
+        // 1. 收集原始大运数据
+        let rawDayunArray = [];
+        daYunArray.forEach((dy, index) => {
+            if (index === 0) return; // 跳过起运前的童限段
+            const ganZhi = dy.getGanZhi();
+            const dyGan = ganZhi.charAt(0);
+            const dyZhi = ganZhi.charAt(1);
+            const shishen = ShiShenEngine.getShiShen(globalDayGan, dyGan);
+            
+            rawDayunArray.push({ ganzhi: ganZhi, shiShen: shishen, gan: dyGan, zhi: dyZhi });
+        });
 
-daYunArray.forEach((dy, index) => {
-if (index === 0) return;
-let startY = firstYunYear + (index - 1) * 10;
-let endY = startY + 9;
+        // 2. 调用高级专业大运引擎（传入真实的起运年与起运月）
+        const professionalDayun = generateProfessionalDayunList(y, birthMonthNum, startAge, rawDayunArray, firstYunYear, startMonth);
 
-let startA = startAge + (index - 1) * 10;
-let endA = startA + 9;
+        // 3. 渲染大运流水表与交运混杂期提示
+        let dayunListHtml = '<strong>🚩 精准大运流水表 (10年严格闭环与交运节点)：</strong><ul>';
+        let transitionNoticeHtml = "";
 
-const ganZhi = dy.getGanZhi();
-const dyGan = ganZhi.charAt(0);
-const dyZhi = ganZhi.charAt(1);
-const shishen = ShiShenEngine.getShiShen(globalDayGan, dyGan);
+        professionalDayun.forEach(item => {
+            globalDaYunList.push({
+                ganZhi: item.ganzhi,
+                gan: item.ganzhi.charAt(0),
+                zhi: item.ganzhi.charAt(1),
+                startYear: item.startYear,
+                endYear: item.endYear,
+                shishen: item.shiShen
+            });
 
-globalDaYunList.push({
-ganZhi: ganZhi,
-gan: dyGan,
-zhi: dyZhi,
-startYear: startY,
-endYear: endY,
-shishen: shishen
-});
+            const activeFlag = item.isCurrentStep ? ' <span style="color:#007aff; font-weight:bold;">[当前大运]</span>' : '';
+            const highlightStyle = item.isCurrentStep ? ' style="color:#d9534f; font-weight:bold;"' : '';
+            
+            dayunListHtml += `<li${highlightStyle}>${item.text}${activeFlag}（交运节点：约 ${item.transitionDate}）</li>`;
 
-const isActive = currentYear >= startY && currentYear <= endY;
-const activeFlag = isActive ? ' <span style="color:#007aff; font-weight:bold;">[当前大运]</span>' : '';
-dayunListHtml += `<li>【${shishen}】<strong>${ganZhi}</strong> 运（${startY}年 ~ ${endY}年，约 ${startA}岁 ~ ${endA}岁）${activeFlag}</li>`;
-});
-dayunListHtml += '</ul>';
-document.getElementById('dayunListBox').innerHTML = dayunListHtml;
+            if (item.noticeText) {
+                transitionNoticeHtml = `<div class="relation-box" style="background:#fffbe6; border-left-color:#ff9500; margin-top:10px;">${item.noticeText}</div>`;
+            }
+        });
+        dayunListHtml += '</ul>';
 
-updateMonthSection();
-document.getElementById('resultCard').style.display = 'block';
+        // 绑定起运详细描述（精准到年月日）
+        document.getElementById('startYunInfo').innerText = `起运节点：精确公历 ${firstYunYear} 年 ${startSolar.getMonth()} 月 ${startSolar.getDay()} 日前后交运 (起运岁数：约 ${startAge} 岁)`;
+        document.getElementById('dayunListBox').innerHTML = dayunListHtml;
 
-document.getElementById('spouseAnalysisBox').innerHTML = generateDeepSpouseAnalysis(eightChar, globalGender);
-} catch(err) {
-console.error("排盘异常：", err);
-alert("排盘计算出现异常，请检查输入的年月日时辰是否正确。");
+        const detailBox = document.getElementById('dayunDetailBox');
+        if (detailBox) {
+            detailBox.innerHTML = transitionNoticeHtml || "当前年份大运处于稳定运行期，无新旧磁场剧烈交替。";
+        }
+
+        updateMonthSection();
+        document.getElementById('resultCard').style.display = 'block';
+
+        document.getElementById('spouseAnalysisBox').innerHTML = generateDeepSpouseAnalysis(eightChar, globalGender);
+    } catch(err) {
+        console.error("排盘异常：", err);
+        alert("排盘计算出现异常，请检查输入的年月日时辰是否正确。");
+    }
 }
-}
-
+  
 function renderRelationTagsWithDetail(list) {
 if (!list || list.length === 0) return '<span style="color:#8e8e93; font-size:13px;">无明显直接冲合刑害</span>';
 let html = '';
@@ -821,6 +843,7 @@ if (currentDaYun) {
       ⚠️ <strong>【岁运并临强力警示】：</strong>当前流年（${yGan}${yZhi}）与所处大运（${currentDaYun.ganZhi}）<strong>干支完全相同（岁运并临）</strong>！传统命理认为此乃气场极其强烈重叠之年，多主环境巨变、思想重组或面临重大抉择，宜谨言慎行、顺应调理。
     </div>`;
   }
+
   
   // 核心检测：天克地冲
   const ganKeMap = { '甲':'戊己', '乙':'戊己', '丙':'庚辛', '丁':'庚辛', '戊':'壬癸', '己':'壬癸', '庚':'甲乙', '辛':'甲乙', '壬':'丙丁', '癸':'丙丁' };
@@ -946,16 +969,15 @@ document.getElementById('animTitle').innerText = `【${monthGanZhiObj.ganZhi}月
 document.getElementById('animDesc').innerText = `在 ${solarDateRange} 期间，流月与四柱及大运未产生剧烈冲刑作用，气场顺畅。`;
 }
 }
-  
 /**
- * 终极完整版：完美融合【配偶星意象】、【身材外貌年纪】、【相遇场景】、【夫妻宫】、【真实流年】及【十神正偏星/专一度剖析】
+ * 终极专业双轨版：完美融合【配偶星五行/十神皮相】+【夫妻宫地支骨相】+【四柱定位】+【相遇场景】+【真实流年】+【正偏星辨析】
  */
 function generateDeepSpouseAnalysis(eightChar, gender) {
     const dayGan = eightChar.getDayGan(); // 日主（天干）
     const dayZhi = eightChar.getDayZhi(); // 夫妻宫（日支）
     const monthZhi = eightChar.getMonthZhi(); // 月支
     
-    // 天干阴阳属性（0代表阳，1代表阴）
+    // 天干阴阳与五行映射
     const ganYinYang = { '甲':0, '丙':0, '戊':0, '庚':0, '壬':0, '乙':1, '丁':1, '己':1, '辛':1, '癸':1 };
     const ganWuXing = { '甲':'木', '乙':'木', '丙':'火', '丁':'火', '戊':'土', '己':'土', '庚':'金', '辛':'金', '壬':'水', '癸':'水' };
     const wuXingKe = { '木':'土', '土':'水', '水':'火', '火':'金', '金':'木' }; // A克B
@@ -973,7 +995,7 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
 
     const dayWX = ganWuXing[dayGan];
     
-    // 1. 获取四柱天干，精准定位配偶星出现位置
+    // 1. 获取四柱天干，精准定位配偶星出现位置与五行
     const yearGan = eightChar.getYearGan();
     const monthGan = eightChar.getMonthGan();
     const timeGan = eightChar.getTimeGan();
@@ -995,8 +1017,8 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
     
     let foundPositions = [];
     let detailedStars = [];
-    let zhengCount = 0; // 正星计数（正财/正官）
-    let pianCount = 0;  // 偏星计数（偏财/七杀）
+    let zhengCount = 0; // 正星计数
+    let pianCount = 0;  // 偏星计数
     
     allGansWithPosition.forEach(item => {
         if (ganWuXing[item.gan] === spouseTargetWX) {
@@ -1008,7 +1030,7 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
             } else {
                 specificType = isYinYangDiff ? "正官" : "七杀";
             }
-            detailedStars.push({ gan: item.gan, type: specificType });
+            detailedStars.push({ gan: item.gan, type: specificType, wx: ganWuXing[item.gan] });
 
             if (isYinYangDiff) {
                 zhengCount++;
@@ -1057,23 +1079,34 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
         您的日主与天干配偶星未直接构成天干五合，情感多通过现实生活中的磨合与性格互补来稳固。`;
     }
 
-    // 3. 夫妻宫特征库（包含性格、身材外貌、年纪倾向）
+    // 3. 夫妻宫特征库（地支骨相底色）
     const zhiDetails = {
-        '子': { trait: "聪明机灵，皮肤白皙，为人敏锐温柔。", height: "中等偏下或身材匀称，气质清秀干净", ageDiff: "倾向于找年龄相仿或小几岁的伴侣" },
-        '丑': { trait: "为人敦厚老实，务实顾家，外表稳重，做事有条理。", height: "中等身材，骨骼较结实，外表踏实", ageDiff: "倾向于找成熟稳重、比自己大或同龄的伴侣" },
-        '寅': { trait: "积极进取，热情大方，有主见和领导能力。", height: "身材较高挑，体态挺拔，精气神足", ageDiff: "倾向于找有上进心、观念契合的伴侣" },
-        '卯': { trait: "温和文雅，心思细腻，富有同情心和艺术气息。", height: "身材修长匀称，长相清秀文雅", ageDiff: "倾向于年龄相当，或受到对方细致照顾" },
-        '辰': { trait: "气场稳重，包容心强，具有较强的责任感和事业心。", height: "中等偏高，体态富态或匀称大气", ageDiff: "多得成熟照顾，或伴侣能力较强" },
-        '巳': { trait: "热情开朗，反应敏捷，善于交际，性子稍急。", height: "中等身材，精干利落，外表亮眼", ageDiff: "年龄差距可大可小，多因才华或社交吸引" },
-        '午': { trait: "阳光自信，积极热烈，注重仪表和生活品质，社交圈广。", height: "身材匀称，精气神十足，穿着得体", ageDiff: "倾向于轰轰烈烈的恋爱，多同龄" },
-        '未': { trait: "温和坚韧，顾家孝顺，善于理财和包容，外表随和内敛。", height: "中等身材，外表朴实耐看", ageDiff: "伴侣多务实，懂得体贴照顾家庭" },
-        '申': { trait: "机智果断，做事雷厉风行，精明能干，适应能力极强。", height: "身材结实，动作敏捷，干练利落", ageDiff: "伴侣多为职场精英或技术能手" },
-        '酉': { trait: "讲究生活情调，仪态端庄，做事追求完美。", height: "身材秀气，气质干净，注重仪表细节", ageDiff: "多配外形出众、注重生活品质的伴侣" },
-        '戌': { trait: "忠诚正直，讲义气，有责任担当，性格较为主观坚毅。", height: "中等或偏高，身形健硕，很有安全感", ageDiff: "倾向于找成熟稳重、能互相给安全感的伴侣" },
-        '亥': { trait: "随和包容，心地善良，心思纯净，福气较好，不喜争执。", height: "中等身材，略显富态，面相温和有福气", ageDiff: "伴侣多温和善良，家庭氛围融洽" }
+        '子': { trait: "聪明机灵，为人敏锐温柔，带有天然的亲和力与好人缘。", height: "身材中等或偏瘦，面容清秀，眼神灵动", ageDiff: "倾向于找年龄相仿或小几岁的伴侣" },
+        '丑': { trait: "为人敦厚老实，务实顾家，外表稳重，做事有条理，隐忍沉稳。", height: "身材结实内敛，面容质朴耐看，骨骼较重", ageDiff: "倾向于找成熟稳重、比自己大或同龄的伴侣" },
+        '寅': { trait: "积极进取，热情大方，有主见和领导能力，行事雷厉风行。", height: "身材高挑健美，四肢修长，面部线条硬朗中带秀气", ageDiff: "倾向于找有上进心、观念契合的伴侣" },
+        '卯': { trait: "温和文雅，心思细腻，富有同情心和书卷气。", height: "身材修长匀称，个头中上，长相清秀温润，手指纤细", ageDiff: "倾向于年龄相当，或受到对方细致照顾" },
+        '辰': { trait: "气场稳重，包容心强，具有较强的责任感和事业心，胸怀宽广。", height: "身材敦厚扎实，面相方圆或饱满，体态大气", ageDiff: "多得成熟照顾，或伴侣能力较强" },
+        '巳': { trait: "热情开朗，反应敏捷，善于交际，精气神十足，谈吐具有感染力。", height: "中等身材，精干利落，面色红润，外表亮眼", ageDiff: "年龄差距可大可小，多因才华或社交吸引" },
+        '午': { trait: "阳光自信，积极热烈，注重仪表和生活品质，社交圈广，眉目传神。", height: "身材匀称，面部轮廓分明，气质热烈开朗，打扮得体", ageDiff: "倾向于轰轰烈烈的恋爱，多同龄" },
+        '未': { trait: "温和坚韧，顾家孝顺，善于理财和包容，外表随和中带倔强。", height: "身材匀称微胖或结实，外表朴实耐看，大方得体", ageDiff: "伴侣多务实，懂得体贴照顾家庭" },
+        '申': { trait: "机智果断，做事雷厉风行，精明能干，适应能力极强，面廓清晰。", height: "身材灵动精干，动作敏捷，干练利落", ageDiff: "伴侣多为职场精英或技术能手" },
+        '酉': { trait: "讲究生活情调，仪态端庄，做事追求完美，骨骼小巧匀称。", height: "五官立体精致，皮肤白皙，气质干净，注重仪表细节", ageDiff: "多配外形出众、注重生活品质的伴侣" },
+        '戌': { trait: "忠诚正直，讲义气，有责任担当，性格较为主观坚毅，眼神坚毅。", height: "身材中等偏壮实，面部轮廓分明，很有安全感", ageDiff: "倾向于找成熟稳重、能互相给安全感的伴侣" },
+        '亥': { trait: "随和包容，心地善良，心思纯净，福气较好，面相温和有福气。", height: "身材丰满圆润或匀称，眼神清澈，给人包容感", ageDiff: "伴侣多温和善良，家庭氛围融洽" }
     };
 
-    const currentZhiInfo = zhiDetails[dayZhi] || { trait: "性格独立，需在磨合中相处。", height: "中等身材", ageDiff: "缘分随和" };
+    const currentZhiInfo = zhiDetails[dayZhi] || { trait: "性格独立，需在磨合中相处。", height: "身材匀称，面相端庄，气质随和", ageDiff: "缘分随和" };
+
+    // 🌟 新增：配偶星五行（皮相色彩）对外貌的修正加权
+    const starWuXingTraits = {
+        '木': '受配偶星【木】气影响：外在体态增加修长高挑感，气质倾向于舒展、书卷气、眉秀神清。',
+        '火': '受配偶星【火】气影响：外在五官更加立体分明，眼神有光彩，面色红润有朝气，穿着较抢眼。',
+        '土': '受配偶星【土】气影响：外在体态增加敦厚踏实感，面相倾向于饱满耐看，气质稳重沉静。',
+        '金': '受配偶星【金】气影响：外在肤色偏白皙或面部轮廓精巧，气质利落，自带一份英气或干练感。',
+        '水': '受配偶星【水】气影响：外在肤色润泽，眼神清澈灵动，身形倾向于丰润或圆柔，富有亲和力。'
+    };
+
+    let starWxDesc = starWuXingTraits[spouseTargetWX] || "配偶星五行平和，外貌呈现自然的复合特征。";
 
     // 4. 相遇场景
     const meetingScenes = [
@@ -1145,10 +1178,10 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
         <em>情感态度与相处模式：</em>情感表达相对内敛、含蓄，不喜招摇，注重内心世界的深层契合，感情往往属于细水长流、极其稳固型。`;
     }
 
-    // 7. 组装最终输出
+    // 7. 组装最终输出（完美呈现“骨相 + 皮相”双重论断）
     return `
         <p><strong>🎯 1. 确定配偶星、缘分底色与天干五合：</strong><br>
-        您是【${gender}命】，八字中以<strong>${spouseRoleName}</strong>代表伴侣。<br>
+        您是【${gender}命】，八字中以<strong>${spouseRoleName}（五行属【${spouseTargetWX}】）</strong>代表伴侣。<br>
         <em>星情解读：</em>${starDetailText}<br><br>
         ${timingAnalysis}<br><br>
         ${ganHeAnalysis}</p>
@@ -1156,9 +1189,10 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
         <p><strong>👥 2. 夫妻宫地支解析（性格与日常相处原貌）：</strong><br>
         您的夫妻宫（日支）坐【<strong>${dayZhi}</strong>】，伴侣在朝夕相处时的具体性格表现为：${currentZhiInfo.trait}</p>
         
-        <p><strong>📏 3. 身材、外貌与年龄缘分倾向：</strong><br>
-        外在形象上，伴侣的身材与外貌多表现为：<strong>${currentZhiInfo.height}</strong>。<br>
-        在年龄缘分上：${currentZhiInfo.ageDiff}。</p>
+        <p><strong>📏 3. 身材、外貌与皮相骨相双重解析：</strong><br>
+        🏛️ <em>夫妻宫骨相底色（日支【${dayZhi}】）：</em><strong>${currentZhiInfo.height}</strong>。<br>
+        🎨 <em>配偶星皮相色彩（${spouseRoleName}五行属【${spouseTargetWX}】）：</em>${starWxDesc}<br>
+        ⏳ <em>年龄缘分倾向：</em>${currentZhiInfo.ageDiff}。</p>
         
         <p><strong>🌸 4. 潜在相遇或缘分轨迹：</strong><br>
         若处于寻觅阶段，相遇轨迹多为：<strong>${matchedScene}</strong></p>
@@ -1173,8 +1207,51 @@ function generateDeepSpouseAnalysis(eightChar, gender) {
         </ul></p>
     `;
 }
+  
+function generateProfessionalDayunList(birthYear, birthMonth, startAge, dayunGanzhiList, firstYunYear, startMonth) {
+    let currentStartYear = firstYunYear ? Number(firstYunYear) : (Number(birthYear) + Number(startAge));
+    let resultList = [];
+    
+    // 🌟 如果传了历法库算出的起运月(startMonth)，就用它；否则用默认推算月
+    let transitionMonth = startMonth ? Number(startMonth) : ((birthMonth + 3) > 12 ? (birthMonth + 3 - 12) : (birthMonth + 3)); 
+    const currentYear = new Date().getFullYear();
+
+    dayunGanzhiList.forEach((item, index) => {
+        let endYear = currentStartYear + 9; // 严格十年闭环
+        let startAgeNum = startAge + (index * 10);
+        let endAgeNum = startAgeNum + 9;
+
+        let isCurrentStep = (currentYear >= currentStartYear && currentYear <= endYear);
+        let isTransitionYear = (currentYear === currentStartYear);
+
+        let noticeText = "";
+        if (isTransitionYear) {
+            noticeText = `⚡ <strong>【${currentStartYear}年交运混杂期特别提示】</strong>：本年为换运交接之年，约在 <strong>${currentStartYear}年${transitionMonth}月前后</strong> 正式完成磁场交接。交运点之前仍受上一步大运余气影响，交运点之后正式接轨【${item.ganzhi}】大运。`;
+        }
+
+        resultList.push({
+            ganzhi: item.ganzhi,
+            shiShen: item.shiShen,
+            startYear: currentStartYear,
+            endYear: endYear,
+            transitionDate: `${currentStartYear}年${transitionMonth}月`,
+            isCurrentStep: isCurrentStep,
+            isTransitionYear: isTransitionYear,
+            text: `【${item.shiShen}】${item.ganzhi} 运（${currentStartYear}~${endYear}年，约 ${startAgeNum}~${endAgeNum}岁）`,
+            noticeText: noticeText
+        });
+
+        currentStartYear = endYear + 1;
+    });
+
+    return resultList;
+}
+
+
 </script>
 
 </body>
 </html>
+
+
 
