@@ -102,7 +102,7 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 <div id="startYunInfo" style="font-size:13px; color:#666; margin-top:4px;">--</div>
 <div class="list-box" style="border-left-color:#ff9500;" id="dayunListBox">--</div>
 <div class="relation-box" style="background:#fffbe6; border-left-color:#ff9500;" id="dayunDetailBox">--</div>
-
+  
 <h2 style="margin-top:24px;">第二栏：流年运势 (原局+大运 联动推演)</h2>
 <div class="row">
 <div>
@@ -119,7 +119,14 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 - <strong>逢合主“凝”：</strong>代表情感凝聚、贵人相助、签约合作与深度羁绊。
 </div>
 
+<!-- 1. 先展示干支结构与冲合刑害明细 -->
 <div class="relation-box" id="yearDetail">--</div>
+
+<!-- 2. 将“流年整体综合运势诊断”移动到最下面显示 -->
+<div class="relation-box" style="background:#f0f7ff; border-left-color:#007aff; margin-top:12px;">
+    <strong>📊 流年整体综合运势诊断：</strong>
+    <div id="yearOverallAnalysisBox" style="margin-top:6px; line-height:1.7; font-size:14px;">--</div>
+</div>
 
 <!-- 第三栏：恢复流月干支细看 -->
 <h2 style="margin-top:24px;">第三栏：流月干支细看 (原局+大运+流年 综合推演)</h2>
@@ -281,8 +288,8 @@ const FullEarthEngine = {
     sanHe: {
         '巳酉丑': { name: '巳酉丑三合金局', targetWX: '金' },
         '亥卯未': { name: '亥卯未三合木局', targetWX: '木' },
-        '申子辰': { name: '申子辰三合水局', targetWX: '水' },
-        '寅午戌': { name: '寅午戌三合火局', targetWX: '火' }
+        '寅午戌': { name: '寅午戌三合火局', targetWX: '火' },
+        '申子辰': { name: '申子辰三水局', targetWX: '水' }
     },
     sanHui: {
         '巳午未': { name: '巳午未三会儿局', targetWX: '火' },
@@ -310,7 +317,8 @@ const FullEarthEngine = {
         return results;
     },
 
-    analyzeZhi(targetZhi, targetList, isXiShen) {
+    // 彻底拿掉 isXiShen 判断及喜忌标签，改为客观中性描述
+    analyzeZhi(targetZhi, targetList) {
         let results = [];
         if (!targetList) return results;
 
@@ -322,22 +330,20 @@ const FullEarthEngine = {
                 let idx = 9.0;
                 if (item.name && (item.name.includes('日支') || item.name.includes('婚姻'))) idx += 1.0;
                 if (item.name && item.name.includes('大运')) idx += 0.8;
-                let prefix = isXiShen ? '【🌟 喜神逢冲·破局立功】' : '【⚠️ 气场动摇·宜稳忌冲】';
-                results.push({ name: `${prefix} ${this.zhiChong[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiChong[k], type: 'chong', index: Math.min(idx, 10.0), isXi: isXiShen });
+                results.push({ name: `【⚡ 地支相冲·动摇重组】 ${this.zhiChong[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiChong[k], type: 'chong', index: Math.min(idx, 10.0) });
             }
             if (this.zhiXing[k]) {
                 let idx = 7.5;
                 if (item.name && (item.name.includes('日支') || item.name.includes('婚姻'))) idx += 0.8;
-                let prefix = isXiShen ? '【✨ 喜神相刑·能力重构】' : '【⚠️ 细节磨合·防范争议】';
-                results.push({ name: `${prefix} ${this.zhiXing[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiXing[k], type: 'xing', index: idx, isXi: isXiShen });
+                results.push({ name: `【⚖️ 地支相刑·细节磨合】 ${this.zhiXing[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiXing[k], type: 'xing', index: idx });
             }
             if (this.zhiHai[k]) {
                 let idx = 5.5;
                 if (item.name && item.name.includes('日支')) idx += 0.5;
-                results.push({ name: `${this.zhiHai[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiHai[k], type: 'hai', index: idx });
+                results.push({ name: `【🌪️ 地支相害·气场穿害】 ${this.zhiHai[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiHai[k], type: 'hai', index: idx });
             }
             if (this.zhiHe[k]) {
-                results.push({ name: `${this.zhiHe[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiHe[k], type: 'he', index: 3.0 });
+                results.push({ name: `【🤝 地支六合·凝聚相合】 ${this.zhiHe[k]} (${item.name} ${item.zhi})`, rawKey: this.zhiHe[k], type: 'he', index: 3.0 });
             }
         });
 
@@ -347,28 +353,26 @@ const FullEarthEngine = {
         for (let key in this.sanXing) {
             const chars = key.split('');
             if (chars.every(c => zhiSet.has(c))) {
-                let prefix = isXiShen ? '【✨ 喜神三刑·能力大进】' : '【⚠️ 联动三刑·压力重构】';
-                results.push({ name: `${prefix} ${this.sanXing[key].name} (全盘凝结)`, rawKey: key, type: 'xing', index: 9.6, isXi: isXiShen });
+                results.push({ name: `【⚠️ 局中引发 ${this.sanXing[key].name}】 (气场重塑与压力关口)`, rawKey: key, type: 'xing', index: 9.6 });
             }
         }
 
         for (let key in this.sanHe) {
             const chars = key.split('');
             if (chars.every(c => zhiSet.has(c))) {
-                results.push({ name: `${this.sanHe[key].name} (全局凝结)`, rawKey: key, targetWX: this.sanHe[key].targetWX, type: 'hui', index: 8.8 });
+                results.push({ name: `【🔮 地支引发 ${this.sanHe[key].name}】 (能量汇聚)`, rawKey: key, targetWX: this.sanHe[key].targetWX, type: 'hui', index: 8.8 });
             }
         }
         for (let key in this.sanHui) {
             const chars = key.split('');
             if (chars.every(c => zhiSet.has(c))) {
-                results.push({ name: `${this.sanHui[key].name} (气场极旺)`, rawKey: key, targetWX: this.sanHui[key].targetWX, type: 'hui', index: 9.5 });
+                results.push({ name: `【🌟 地支引发 ${this.sanHui[key].name}】 (气场极旺)`, rawKey: key, targetWX: this.sanHui[key].targetWX, type: 'hui', index: 9.5 });
             }
         }
 
         return results.sort((a, b) => b.index - a.index);
     }
 };
-
 const WuHuDunEngine = {
     tianganList: ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'],
     dizhiList: ['寅','卯','辰','巳','午','未','申','酉','戌','亥','子','丑'],
@@ -943,7 +947,14 @@ function updateMonthSection() {
         <div style="margin-top:8px;"><strong>天干作用 (含大运)：</strong> ${renderRelationTagsSimple(yGanRel)}</div>
         <div style="margin-top:6px;"><strong>地支冲合刑 (深度解析)：</strong><br/> ${renderRelationTagsWithDetail(yZhiRel)}</div>
         `;
-
+// =========================================================
+        // 👇【请把第三步的代码直接粘贴在这里】👇
+        const yearAnalysisHtml = generateYearOverallAnalysis(globalDayGan, yGan, yZhi, yZhiRel, currentDaYun);
+        const yearBox = document.getElementById('yearOverallAnalysisBox');
+        if (yearBox) {
+            yearBox.innerHTML = yearAnalysisHtml;
+        }
+        //
         // 🌟 修复关键：补全流月喜忌（isMonthXiShen）的推导，彻底解决第三/四栏崩溃不显示问题
         const targetMonthZhi = document.getElementById('targetMonthZhi').value;
         const monthGanZhiObj = WuHuDunEngine.getMonthGanZhi(yGan, targetMonthZhi);
@@ -1373,7 +1384,75 @@ function generateFutureHealthAnalysis(eightChar) {
         </ul></p>
     `;
 }
+  
+// 🌟 升级版：生成更具体、有深度的流年整体综合运势诊断文案
+function generateYearOverallAnalysis(dayGan, yGan, yZhi, yZhiRel, currentDaYun) {
+    const yShiShen = ShiShenEngine.getShiShen(dayGan, yGan);
+    const dayWX = ShiShenEngine.ganWuXing[dayGan];
+    const yZhiWX = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' }[yZhi];
+
+    let summaryText = "";
+    
+    // 1. 十神主线解析
+    if (['正官', '七杀'].includes(yShiShen)) {
+        summaryText += `• <strong>事业与名气主线（${yShiShen}显化）：</strong>本年焦点集中于职场破局、责任担当与社会地位提升。${globalIsStrong ? '日主身强，能担官杀，主事业有突破、职位晋升或迎来重用机会。' : '日主身弱，官杀克身，需注意工作压力过大、繁杂事务缠身，宜稳扎稳打。'}<br/>`;
+    } else if (['正财', '偏财'].includes(yShiShen)) {
+        summaryText += `• <strong>财富与资源主线（${yShiShen}透干）：</strong>本年商业与求财意愿强劲，机遇增多。${globalIsStrong ? '身强胜财，极利于业务扩张、财富变现与投资落袋！' : '身弱逢财，财源虽多但求财辛苦，宜合作稳健，切忌高杠杆操作。'}<br/>`;
+    } else if (['食神', '伤官'].includes(yShiShen)) {
+        summaryText += `• <strong>才华与突破主线（${yShiShen}主事）：</strong>思维活跃，灵感迸发，极利于技能提升、创业构想与破局创新。但伤官年也需防口舌沟通细节。<br/>`;
+    } else if (['正印', '偏印'].includes(yShiShen)) {
+        summaryText += `• <strong>沉淀与庇护主线（${yShiShen}生身）：</strong>贵人运增强，利于学习考证、团队组建、买房置业与内部资源整合，内心趋于沉稳。<br/>`;
+    } else {
+        summaryText += `• <strong>社交与合作主线（${yShiShen}帮身）：</strong>同辈人脉互动频繁，社交圈拓展，利于合伙共事，但需注意人情往来开销。<br/>`;
+    }
+
+    // 2. 地支核心气场碰撞解析
+    const topImpact = yZhiRel.length > 0 ? yZhiRel[0] : null;
+    if (topImpact) {
+        if (topImpact.type === 'chong') {
+            summaryText += `• <strong>地支核心气场（强力相冲）：</strong>本年触发【${topImpact.name}】。“冲则动”，预示本年在工作岗位、居住环境、出行远行或思想心态上会有较明显的打破与重组（动中求变）。<br/>`;
+        } else if (topImpact.type === 'xing') {
+            summaryText += `• <strong>地支核心气场（相刑磨合）：</strong>本年引发【${topImpact.name}】。提示本年注重契约合同细节、人际磨合与自我能力的重构迭代。<br/>`;
+        } else if (topImpact.type === 'he' || topImpact.type === 'hui') {
+            summaryText += `• <strong>地支核心气场（相合汇聚）：</strong>本年引发【${topImpact.name}】。气场相合凝结，主贵人相助、资源吸纳、合作达成或情感关系升温加固。<br/>`;
+        }
+    } else {
+        summaryText += `• <strong>地支核心气场（平稳顺畅）：</strong>流年地支【${yZhi}】与原局及大运无剧烈冲刑，全年气场平稳，适合按部就班积累实战能量。<br/>`;
+    }
+
+    // 3. 更有深度的“大运与流年”微观互动分析
+    if (currentDaYun) {
+        const dyGan = currentDaYun.gan;
+        const dyZhi = currentDaYun.zhi;
+        let yunInteraction = "";
+
+        // 简单的天干克/生/合判断
+        const ganKeMap = { '甲':'戊己', '乙':'戊己', '丙':'庚辛', '丁':'庚辛', '戊':'壬癸', '己':'壬癸', '庚':'甲乙', '辛':'甲乙', '壬':'丙丁', '癸':'丙丁' };
+        const zhiChongMap = { '子':'午', '午':'子', '丑':'未', '未':'丑', '寅':'申', '申':'寅', '卯':'酉', '酉':'卯', '辰':'戌', '戌':'辰', '巳':'亥', '亥':'巳' };
+        const zhiLiuHeMap = { '子':'丑', '丑':'子', '寅':'亥', '亥':'寅', '卯':'戌', '戌':'卯', '辰':'酉', '酉':'辰', '巳':'申', '申':'巳', '午':'未', '未':'午' };
+
+        let isGanKe = (ganKeMap[yGan] && ganKeMap[yGan].includes(dyGan));
+        let isZhiChong = (zhiChongMap[yZhi] === dyZhi);
+        let isZhiHe = (zhiLiuHeMap[yZhi] === dyZhi);
+
+        if (yGan + dyZhi === currentDaYun.ganZhi || yGan === dyGan) {
+            yunInteraction = `当前处于【${currentDaYun.ganZhi}】大运，流年天干【${yGan}】与大运同气或紧密相连，放大了该十神的能量波动，意味着本年在对应领域（如事业或求财）会面临更集中的机遇或抉择。`;
+        } else if (isZhiChong) {
+            yunInteraction = `当前处于【${currentDaYun.ganZhi}】大运，而流年地支【${yZhi}】与大运地支【${dyZhi}】形成<strong>运岁相冲</strong>。这意味着大运宏观环境与流年微观磁场产生了直接碰撞，往往对应生活环境、心态或外部局面的明显转折与重组。`;
+        } else if (isZhiHe) {
+            yunInteraction = `当前处于【${currentDaYun.ganZhi}】大运，流年地支【${yZhi}】与大运地支【${dyZhi}】相合。大运底色与流年气场交融凝聚，主此年的人际合作、团队项目或既定规划进展较为顺遂合拍。`;
+        } else {
+            yunInteraction = `当前处于【${currentDaYun.ganZhi}】大运，流年【${yGan}${yZhi}】平稳切入大运基调。在此十年宏观大趋势下，本年重点顺应流年十神与地支的特性稳步推进即可。`;
+        }
+
+        summaryText += `• <strong>运岁气场交织剖析：</strong>${yunInteraction}`;
+    }
+
+    return summaryText;
+}
 </script>
 
 </body>
 </html>
+
+
