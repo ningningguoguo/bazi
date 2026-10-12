@@ -87,7 +87,6 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 </select>
 </div>
 </div>
-
 <button class="btn-submit" onclick="runAll()">生成命盘并展开推演</button>
 </div>
 
@@ -97,12 +96,21 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 <div class="list-box" id="baziStructureBox">--</div>
 <div class="relation-box" style="background:#fef2f2; border-left-color:#ff3b30; margin-top:16px;" id="baziSelfImpactBox">--</div>
 <div class="relation-box" style="background:#f0f9ff; border-left-color:#34c759; margin-top:16px;" id="baziFeatureBox">--</div>
-  
-<h2 style="margin-top:24px;">第一栏：一生大运列表 (带十神、公历年份与岁数)</h2>
-<div id="startYunInfo" style="font-size:13px; color:#666; margin-top:4px;">--</div>
-<div class="list-box" style="border-left-color:#ff9500;" id="dayunListBox">--</div>
-<div class="relation-box" style="background:#fffbe6; border-left-color:#ff9500;" id="dayunDetailBox">--</div>
-  
+
+<!-- 📋 新增：一键复制按钮 -->
+<div style="margin: 16px 0;">
+    <button onclick="copyBaziAndDaYun()" style="padding: 8px 16px; font-size: 14px; font-weight: bold; background-color: #34c759; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+        📋 一键复制（八字干支 + 一生大运）
+    </button>
+</div>
+
+<!-- 📦 用 dayunSectionContainer 把第一栏整块包起来 -->
+<div id="dayunSectionContainer">
+    <h2 style="margin-top:24px;">第一栏：一生大运列表 (带十神、公历年份与岁数)</h2>
+    <div id="startYunInfo" style="font-size:13px; color:#666; margin-top:4px;">--</div>
+    <div class="list-box" style="border-left-color:#ff9500; margin-top:8px;" id="dayunListBox">--</div>
+    <div class="relation-box" style="background:#fffbe6; border-left-color:#ff9500; margin-top:12px;" id="dayunDetailBox">--</div>
+</div>
 <h2 style="margin-top:24px;">第二栏：流年运势 (原局+大运 联动推演)</h2>
 <div class="row">
 <div>
@@ -1449,6 +1457,85 @@ function generateYearOverallAnalysis(dayGan, yGan, yZhi, yZhiRel, currentDaYun) 
     }
 
     return summaryText;
+}
+// 🌟 一键复制：完整命主档案（实时读取表单输入） + 原局结构 + 一生大运
+function copyBaziAndDaYun() {
+    // 1. 从表单实时读取基本档案信息
+    const calendarTypeElem = document.getElementById('calendarType');
+    const genderElem = document.getElementById('gender');
+    const yearElem = document.getElementById('year');
+    const monthElem = document.getElementById('month');
+    const dayElem = document.getElementById('day');
+    const hourElem = document.getElementById('hourSelect');
+
+    const calendarTypeText = calendarTypeElem ? calendarTypeElem.options[calendarTypeElem.selectedIndex].text : "公历 (阳历)";
+    const genderText = genderElem ? genderElem.options[genderElem.selectedIndex].text : "坤造 (女)";
+    const year = yearElem ? yearElem.value : "";
+    const month = monthElem ? monthElem.value : "";
+    const day = dayElem ? dayElem.value : "";
+    const hourText = hourElem ? hourElem.options[hourElem.selectedIndex].text : "";
+
+    // 2. 组装命主基本档案头部
+    let profileStr = `==================== 👤 命主基本档案 ====================\n`;
+    profileStr += `性别/造别：${genderText}\n`;
+    profileStr += `出生历法：${calendarTypeText}\n`;
+    profileStr += `出生日期：${year}年${month}月${day}日\n`;
+    profileStr += `出生时辰：${hourText}\n`;
+
+    // 3. 获取原局干支结构文本
+    let baziStructureText = "";
+    const baziBox = document.getElementById('baziStructureBox');
+    if (baziBox) {
+        baziStructureText = baziBox.innerText.trim();
+    }
+
+    // 4. 获取第一栏（一生大运）整个容器的文本
+    const daYunContainer = document.getElementById('dayunSectionContainer');
+    let daYunText = "";
+    if (daYunContainer) {
+        daYunText = daYunContainer.innerText || daYunContainer.textContent;
+        // 清理多余空行，保持整洁
+        daYunText = daYunText.replace(/\n\s*\n/g, '\n').trim();
+    } else {
+        alert("未找到大运内容，请先点击【生成命盘并展开推演】！");
+        return;
+    }
+
+    // 5. 完美无缝拼接最终导出的纯文本
+    const finalCopyStr = `${profileStr}\n==================== 📜 八字原局干支与宫位结构 ====================\n\n${baziStructureText}\n\n==================== 🚩 一生大运流水表 ====================\n\n${daYunText}`;
+
+    // 6. 执行剪贴板写入
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(finalCopyStr).then(() => {
+            alert("✅ 已成功复制【完整档案 + 原局 + 大运】到剪贴板！");
+        }).catch(() => {
+            fallbackCopy(finalCopyStr);
+        });
+    } else {
+        fallbackCopy(finalCopyStr);
+    }
+}
+
+// 兼容性备用复制函数
+function fallbackCopy(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            alert("✅ 已成功复制完整内容！");
+        } else {
+            alert("❌ 复制失败，请手动选择复制。");
+        }
+    } catch (err) {
+        alert("❌ 复制失败，请手动选择复制。");
+    }
+    document.body.removeChild(textArea);
 }
 </script>
 
