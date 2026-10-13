@@ -297,10 +297,10 @@ const FullEarthEngine = {
         '巳酉丑': { name: '巳酉丑三合金局', targetWX: '金' },
         '亥卯未': { name: '亥卯未三合木局', targetWX: '木' },
         '寅午戌': { name: '寅午戌三合火局', targetWX: '火' },
-        '申子辰': { name: '申子辰三水局', targetWX: '水' }
+        '申子辰': { name: '申子辰三合水局', targetWX: '水' }
     },
     sanHui: {
-        '巳午未': { name: '巳午未三会儿局', targetWX: '火' },
+        '巳午未': { name: '巳午未三会火局', targetWX: '火' },
         '亥子丑': { name: '亥子丑三会水局', targetWX: '水' },
         '寅卯辰': { name: '寅卯辰三会木局', targetWX: '木' },
         '申酉戌': { name: '申酉戌三会儿局', targetWX: '金' }
@@ -598,48 +598,182 @@ function generateBaziFeatures(lunarObj, eightChar) {
     const dayGan = eightChar.getDayGan();
     const dayWX = ShiShenEngine.ganWuXing[dayGan];
     const solar = lunarObj.getSolar();
-    const strengthAnalysis = analyzeDayStrength(eightChar);
+    
+    // 1. 严格以“立春”切分的年柱干支
+    const baziYearGanZhi = eightChar.getYearGan() + eightChar.getYearZhi();
 
+    // 2. 五行对应关系
+    const shengMeMap = { '金':'土', '木':'水', '水':'金', '火':'木', '土':'火' };
+    const shengMe = shengMeMap[dayWX]; // 印星
+    const sameMe = dayWX;            // 比劫
+
+    let helpScore = 0;   // 帮扶得分
+    let wasteScore = 0;  // 克泄耗得分
+    let reasons = [];
+
+    const allZhis = [eightChar.getYearZhi(), monthZhi, eightChar.getDayZhi(), eightChar.getTimeZhi()];
+    const zhiStr = allZhis.join('');
+
+    // ① 特殊格局：地支三会局 / 三合局 检查
+    const sanHuiMap = {
+        '寅卯辰': { wx: '木', name: '寅卯辰三会木局' },
+        '巳午未': { wx: '火', name: '巳午未三会火局' },
+        '申酉戌': { wx: '金', name: '申酉戌三会金局' },
+        '亥子丑': { wx: '水', name: '亥子丑三会水局' }
+    };
+    const sanHeMap = {
+        '亥卯未': { wx: '木', name: '亥卯未三合木局' },
+        '寅午戌': { wx: '火', name: '寅午戌三合火局' },
+        '巳酉丑': { wx: '金', name: '巳酉丑三合金局' },
+        '申子辰': { wx: '水', name: '申子辰三合水局' }
+    };
+
+    let hasJu = false;
+    for (let k in sanHuiMap) {
+        if (k.split('').every(z => zhiStr.includes(z))) {
+            const ju = sanHuiMap[k];
+            if (ju.wx === sameMe || ju.wx === shengMe) {
+                helpScore += 50;
+                reasons.push(`地支达成【${ju.name}】，生扶气场极强`);
+            } else {
+                wasteScore += 45;
+                reasons.push(`地支达成【${ju.name}】，克泄耗气场极强`);
+            }
+            hasJu = true;
+            break;
+        }
+    }
+    if (!hasJu) {
+        for (let k in sanHeMap) {
+            if (k.split('').every(z => zhiStr.includes(z))) {
+                const ju = sanHeMap[k];
+                if (ju.wx === sameMe || ju.wx === shengMe) {
+                    helpScore += 40;
+                    reasons.push(`地支形成【${ju.name}】，生扶日主`);
+                } else {
+                    wasteScore += 35;
+                    reasons.push(`地支形成【${ju.name}】，强力克泄耗`);
+                }
+                hasJu = true;
+                break;
+            }
+        }
+    }
+
+    // ② 月令与湿燥特性评估
+    const monthCangGans = ShiShenEngine.zhiCangGan[monthZhi] || [];
+    const monthMainWX = ShiShenEngine.ganWuXing[monthCangGans[0]];
+
+    if (monthMainWX === sameMe || monthMainWX === shengMe) {
+        if (['丑', '辰'].includes(monthZhi) && dayWX === '金') {
+            helpScore += 18;  // 湿土生金力折半
+            wasteScore += 12; // 湿寒水气反泄金
+            reasons.push(`生于【${monthZhi}月】湿土，生金之力尚显不足`);
+        } else if (['未', '戌'].includes(monthZhi) && dayWX === '水') {
+            wasteScore += 30; // 燥土克水极重
+            reasons.push(`生于【${monthZhi}月】燥土，克水之力较强`);
+        } else {
+            helpScore += 30;
+            reasons.push(`生于【${monthZhi}月】当令/得生`);
+        }
+    } else {
+        wasteScore += 28;
+        reasons.push(`生于【${monthZhi}月】失令耗气`);
+    }
+
+    // ③ 四柱地支通根（禄、旺、长生）判定
+    const zhiLuWangMap = {
+        '甲': ['寅', '卯', '亥', '辰'], '乙': ['卯', '寅', '亥', '未'],
+        '丙': ['巳', '午', '寅', '戌'], '丁': ['午', '巳', '寅', '未'],
+        '戊': ['巳', '午', '辰', '戌'], '己': ['午', '巳', '丑', '未'],
+        '庚': ['申', '酉', '巳', '丑'], '辛': ['酉', '申', '辰', '丑'],
+        '壬': ['亥', '子', '申', '辰'], '癸': ['子', '亥', '申', '酉']
+    };
+    
+    const strongZhis = zhiLuWangMap[dayGan] || [];
+    allZhis.forEach((z, idx) => {
+        let positionName = ['年支', '月支', '日支(坐下)', '时支'][idx];
+        if (strongZhis.includes(z)) {
+            if (idx === 2) {
+                helpScore += 35; // 坐下强根/长生
+                reasons.push(`坐下【${z}】为日主强根/长生/禄旺`);
+            } else if (idx === 3) {
+                helpScore += 30; // 时支强根
+                reasons.push(`时支【${z}】临禄旺/强根`);
+            } else {
+                helpScore += 15;
+                reasons.push(`${positionName}【${z}】通根帮扶`);
+            }
+        } else {
+            if (['亥', '子'].includes(z) && dayWX === '金') {
+                wasteScore += 18;
+                reasons.push(`${positionName}【${z}】水气泄金`);
+            } else if (['巳', '午'].includes(z) && dayWX === '金') {
+                wasteScore += 15;
+            }
+        }
+    });
+
+    // ④ 天干透干
+    [eightChar.getYearGan(), eightChar.getMonthGan(), eightChar.getTimeGan()].forEach((g, idx) => {
+        const gWX = ShiShenEngine.ganWuXing[g];
+        if (gWX === sameMe || gWX === shengMe) {
+            helpScore += 10;
+        } else {
+            wasteScore += 10;
+        }
+    });
+
+    // ⑤ 纯粹“身旺 / 中和 / 身弱”三分判定（已去除极弱与从格）
+    const netScore = helpScore - wasteScore;
+
+    let statusText = "";
+    let suggestText = "";
+
+    if (netScore >= 20) {
+        statusText = "身旺（中和偏旺）";
+        suggestText = "原局五行帮扶能量较为扎实。喜克泄耗（财星、官杀、食伤）来疏导气场；忌印比再来叠加。";
+    } else if (netScore >= -15) {
+        statusText = "中和平衡";
+        suggestText = "原局五行强弱适中，整体气场较为流转和谐。";
+    } else {
+        statusText = "身弱（中和偏弱）";
+        suggestText = "原局五行克泄耗偏重，相对需要外界生扶立足。喜生扶（印星生身、比劫帮身）；忌官杀重克、财星重耗、食伤重泄。";
+    }
+
+    // 3. 调候格局评估
     let tiaoHouText = "";
     const isSpring = ['寅', '卯', '辰'].includes(monthZhi);
     const isSummer = ['巳', '午', '未'].includes(monthZhi);
     const isAutumn = ['申', '酉', '戌'].includes(monthZhi);
     const isWinter = ['亥', '子', '丑'].includes(monthZhi);
 
-    if (isWinter && ['庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁', '戊', '己'].includes(dayGan)) {
-        if (['壬', '癸', '庚', '辛'].includes(dayGan)) {
-            tiaoHouText = "• <strong>调候格局评估：</strong>【金寒水冷】之象。冬季水势汪洋、金气冰寒，命局偏寒，极喜见火（丙丁）温燠暖局，方能生机勃勃、才华舒展。";
-        } else {
-            tiaoHouText = "• <strong>调候格局评估：</strong>【冬阳暖局】之象。严冬冰冻，喜丙丁火解冻暖土融冰，方能化湿生金、生机显现。";
-        }
+    if (isWinter && ['庚', '辛', '壬', '癸'].includes(dayGan)) {
+        tiaoHouText = "• <strong>调候格局评估：</strong>【金寒水冷】之象。冬季水势汪洋、金气冰寒，极喜见火（丙丁）温燠暖局，见土（戊己）培土制水。";
+    } else if (isWinter) {
+        tiaoHouText = "• <strong>调候格局评估：</strong>【冬阳暖局】之象。严冬冰冻，喜丙丁火解冻暖土融冰，生机显现。";
     } else if (isSpring && ['甲', '乙'].includes(dayGan)) {
-        tiaoHouText = "• <strong>调候格局评估：</strong>【木繁向荣】之象。春木正值当令生发，喜丙丁火照拂成【木火通明】，主思维敏捷、才华秀发。";
-    } else if (isSpring && ['壬', '癸'].includes(dayGan)) {
-        tiaoHouText = "• <strong>调候格局评估：</strong>【水木清华】之象。水生春木，气势秀发，主聪明好学、文笔极佳、灵气逼人。";
+        tiaoHouText = "• <strong>调候格局评估：</strong>【木繁向荣】之象。春木当令，喜丙丁火照拂成【木火通明】。";
     } else if (isSummer && ['丙', '丁', '戊', '己'].includes(dayGan)) {
-        tiaoHouText = "• <strong>调候格局评估：</strong>【火炎土燥】之象。夏季火土过旺，烈日炎炎，急需水（壬癸）滋润调候或金泄土气。";
-    } else if (isSummer) {
-        tiaoHouText = "• <strong>调候格局评估：</strong>【炎夏喜水】之象。夏月金水易涸，最喜见水滋根润叶或金水相生。";
-    } else if (isAutumn && ['庚', '辛'].includes(dayGan)) {
-        tiaoHouText = "• <strong>调候格局评估：</strong>【金白水清】之象。秋金得令锐利，若见水来吐秀，主意志坚韧、才华清高。";
-    } else if (isAutumn) {
-        tiaoHouText = "• <strong>调候格局评估：</strong>【秋木雕零】之象。秋金克木，喜火制金或水通关。";
+        tiaoHouText = "• <strong>调候格局评估：</strong>【火炎土燥】之象。夏季火土过旺，急需水（壬癸）滋润调候。";
     } else {
-        tiaoHouText = "• <strong>调候格局评估：</strong>四季气候平和，五行流转有序，注重原局各柱之间的组合情态与燥湿平衡。";
+        tiaoHouText = "• <strong>调候格局评估：</strong>四季气候平和，五行流转有序。";
     }
 
+    // 4. 组装 HTML 输出
     let text = `<strong>📅 生辰历法双对照：</strong><br/>`;
     text += `• <strong>公历 (阳历)：</strong>${solar.getYear()}年${solar.getMonth()}月${solar.getDay()}日<br/>`;
-    text += `• <strong>农历 (阴历)：</strong>${lunarObj.getYearInGanZhi()}年 ${lunarObj.getMonthInChinese()}月${lunarObj.getDayInChinese()}<br/><br/>`;
-    text += `<strong>📜 八字原局格局与身强身弱诊断：</strong><br/>`;
+    text += `• <strong>干支纪年 (立春为准)：</strong>${baziYearGanZhi}年 (农历 ${lunarObj.getMonthInChinese()}月${lunarObj.getDayInChinese()})<br/><br/>`;
     text += `• <strong>日主五行：</strong>【${dayGan}】属 ${dayWX}，生于【${monthZhi}月】。<br/>`;
-    text += `• <strong>日主旺衰：</strong><span style="font-size:15px; font-weight:bold; color:#007aff;">【${strengthAnalysis.status}】</span><br/>`;
-    text += `• <strong>判定原因：</strong>${strengthAnalysis.reasonText}。<br/>`;
+    text += `• <strong>日主旺衰：</strong>【${statusText}】（纯粹五行能量对比：帮扶 ${helpScore}分，克泄耗 ${wasteScore}分）<br/>`;
+    text += `<div style="font-size:12px; color:#666; margin:4px 0 8px 0; line-height:1.4;">💡 <em>注：传统命理的“身强/身弱”仅指原局五行能量的偏多或偏少，不代表身体健康，也绝非命运好坏的断言。</em></div>`;
     text += `${tiaoHouText}<br/>`;
-    text += `• <strong>喜用建议：</strong>${strengthAnalysis.suggest}`;
+    text += `• <strong>喜用建议：</strong>${suggestText}`;
+    
     return text;
 }
-
+  
+  
 function explainDaYunImpact(dayGan, dyGan, dyZhi) {
     const shishen = ShiShenEngine.getShiShen(dayGan, dyGan);
     return `本十年走【${dyGan}${dyZhi}】大运（天干透出：<strong>${shishen}</strong>）。代表此十年内外部气场主调以${shishen}能量为主，利于把握对应的事业或生活机遇。`;
@@ -1541,5 +1675,8 @@ function fallbackCopy(text) {
 
 </body>
 </html>
+
+
+
 
 
