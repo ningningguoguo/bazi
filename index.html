@@ -1424,14 +1424,17 @@ function generateProfessionalDayunList(birthYear, birthMonth, startAge, dayunGan
 }
 
 /**
- * 第五栏：未来五年事业与财运深度诊断引擎
+ * 第五栏：未来五年事业与财运深度诊断引擎（高容错同步版）
+ * @param {Object} eightChar - 八字对象
+ * @param {string|number|Object} globalStatus - 可传 "身旺"|"中和"|"身弱"、第一栏HTML文本、分数值，或留空自动读取全局变量
  */
-function generateFutureCareerWealthAnalysis(eightChar) {
+function generateFutureCareerWealthAnalysis(eightChar, globalStatus) {
     const dayGan = eightChar.getDayGan();
     const dayWX = ShiShenEngine.ganWuXing[dayGan];
     const wuXingKe = { '木':'土', '土':'水', '水':'火', '火':'金', '金':'木' };
     const wealthWX = wuXingKe[dayWX];
 
+    // 1. 原局财库判定
     const allZhis = [eightChar.getYearZhi(), eightChar.getMonthZhi(), eightChar.getDayZhi(), eightChar.getTimeZhi()];
     const kuList = ['辰', '戌', '丑', '未'];
     const foundKus = allZhis.filter(z => kuList.includes(z));
@@ -1440,26 +1443,84 @@ function generateFutureCareerWealthAnalysis(eightChar) {
         `原局自带财库【<strong>${foundKus.join('、')}</strong>】，代表先天具备储蓄变现与资产沉淀基因，逢流年冲开财库之年（如辰戌冲、丑未冲）易有大笔资金流动或资产重组。` : 
         `原局无明显土库相重，财源流动性强，求财宜注重现金流周转与稳健理财。`;
 
+    // =========================================================
+    // 🌟 核心修复：高容错旺衰状态解析（优先解析第一栏的实际判定）
+    // =========================================================
+    let currentStatus = "";
+
+    // ① 如果传入的是对象（如 { ruanShuaiType: '身旺' }）
+    if (typeof globalStatus === 'object' && globalStatus !== null) {
+        currentStatus = globalStatus.ruanShuaiType || globalStatus.statusText || "";
+    } 
+    // ② 如果传入的是数字得分
+    else if (typeof globalStatus === 'number') {
+        if (globalStatus >= 20) currentStatus = "身旺";
+        else if (globalStatus >= -15) currentStatus = "中和";
+        else currentStatus = "身弱";
+    } 
+    // ③ 如果传入的是字符串（支持直接传入第一栏的 HTML 文本）
+    else if (typeof globalStatus === 'string') {
+        if (globalStatus.includes("身旺")) currentStatus = "身旺";
+        else if (globalStatus.includes("中和")) currentStatus = "中和";
+        else if (globalStatus.includes("身弱")) currentStatus = "身弱";
+    }
+
+    // ④ 兜底检查：如果前面都没获取到，读取 window 全局变量，或通过 DOM 抓取页面上的第一栏文案
+    if (!currentStatus && typeof window !== 'undefined') {
+        if (window.currentBaziStatus) {
+            currentStatus = window.currentBaziStatus;
+        } else if (document.body && document.body.innerText.includes("身旺（中和偏旺）")) {
+            currentStatus = "身旺";
+        } else if (document.body && document.body.innerText.includes("中和平衡")) {
+            currentStatus = "中和";
+        }
+    }
+
+    // ⑤ 最终保底（若全未匹配，默认身弱）
+    if (!currentStatus) {
+        currentStatus = "身弱";
+    }
+
+    // 3. 动态求财模式文案选择
+    let qiuCaiSuggest = "";
+    if (currentStatus.includes("身旺")) {
+        qiuCaiSuggest = "适合依靠自身能力、技术专长或拓展新业务自主求财，注重资金流转与投资效益，宜放手一搏，忌过度依赖他人。";
+    } else if (currentStatus.includes("中和")) {
+        qiuCaiSuggest = "求财模式较为灵活，既可独立运作亦可合伙共赢，注重顺势而为，保持资金链与风险控管的平衡即可。";
+    } else {
+        qiuCaiSuggest = "适合借助大平台、团队合作，靠人脉与稳健策略取胜，切忌高杠杆盲目投资。";
+    }
+
+    // 4. 未来五年干支逐年算法 (公历转干支)
     const currentYear = new Date().getFullYear();
+    const ganList = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
     const branchList = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
-    const ganList = ['庚','辛','壬','癸','甲','乙','丙','丁','戊','己'];
 
     let futureYearsHtml = [];
     for (let i = 0; i < 5; i++) {
         let y = currentYear + i;
-        let yGan = ganList[y % 10];
-        let yZhi = branchList[(y - 2024 + 4 + 120) % 12];
+        
+        let yGan = ganList[(y - 4) % 10];
+        let yZhi = branchList[(y - 4) % 12];
         let shishen = ShiShenEngine.getShiShen(dayGan, yGan);
 
         let careerGuide = "";
         if (['正官', '七杀'].includes(shishen)) {
-            careerGuide = globalIsStrong ? 
-                `👔 <strong>【官杀显化·事业高光期】</strong>：身强胜官杀！本年主职位晋升、接手核心重任、名气打响，极利于职场破局。` : 
-                `⚠️ <strong>【官杀透干·谨防压力过载】</strong>：身弱逢官杀，工作负荷较重，宜稳扎稳打，谨防口舌或合规风险。`;
+            if (currentStatus.includes("身旺")) {
+                careerGuide = `👔 <strong>【官杀显化·事业高光期】</strong>：身强胜官杀！本年主职位晋升、接手核心重任、名气打响，极利于职场破局。`;
+            } else if (currentStatus.includes("中和")) {
+                careerGuide = `👔 <strong>【官杀透干·责任提升期】</strong>：职场受关注度提高，机遇与挑战并存，宜合理统筹精力，顺势而为。`;
+            } else {
+                careerGuide = `⚠️ <strong>【官杀透干·谨防压力过载】</strong>：身弱逢官杀，工作负荷较重，宜稳扎稳打，谨防口舌或合规风险。`;
+            }
         } else if (['正财', '偏财', '食神', '伤官'].includes(shishen)) {
-            careerGuide = globalIsStrong ? 
-                `💰 <strong>【食伤财星·商业变现期】</strong>：身强胜财！极利于副业拓展、投资收益落袋、技能变现与项目爆发。` : 
-                `🛡️ <strong>【财星透干·求财宜稳健】</strong>：财源机会增多，但身弱不宜盲目扩张，宜合作共赢，控制资金风险。`;
+            if (currentStatus.includes("身旺")) {
+                careerGuide = `💰 <strong>【食伤财星·商业变现期】</strong>：身强胜财！极利于副业拓展、投资收益落袋、技能变现与项目爆发。`;
+            } else if (currentStatus.includes("中和")) {
+                careerGuide = `💰 <strong>【食伤财星·财源流转期】</strong>：求财机会增多，收益与付出成正比，注重现金流稳健与风险把控。`;
+            } else {
+                careerGuide = `🛡️ <strong>【财星透干·求财宜稳健】</strong>：财源机会增多，但身弱不宜盲目扩张，宜合作共赢，控制资金风险。`;
+            }
         } else {
             careerGuide = `🤝 <strong>【比劫印星·资源沉淀期】</strong>：利于贵人帮扶、团队组建、知识考证与内部规则修补。`;
         }
@@ -1472,8 +1533,8 @@ function generateFutureCareerWealthAnalysis(eightChar) {
         日主【${dayGan}】以【${wealthWX}】为财星。<br>${kuText}</p>
 
         <p><strong>⚖️ 2. 日主旺衰与求财模式建议：</strong><br>
-        当前命局诊断为【<strong>${globalIsStrong ? '身旺' : '身弱'}</strong>】。<br>
-        <em>指导建议：</em>${globalIsStrong ? '适合主动发力、拓展新业务、商业投资，用食伤与财星将能量转化为财富成果。' : '适合借助大平台、团队合作，靠人脉与稳健策略取胜，切忌高杠杆盲目投资。'}</p>
+        当前命局诊断为【<strong>${currentStatus}</strong>】。<br>
+        <em>指导建议：</em>${qiuCaiSuggest}</p>
 
         <p><strong>📈 3. 未来五年事业与财运逐年预测：</strong><br>
         <ul style="margin-top:6px; padding-left:20px; line-height: 1.8;">
@@ -1481,7 +1542,6 @@ function generateFutureCareerWealthAnalysis(eightChar) {
         </ul></p>
     `;
 }
-
 /**
  * 第六栏：未来五年健康与风险避坑诊断引擎
  */
@@ -1675,6 +1735,7 @@ function fallbackCopy(text) {
 
 </body>
 </html>
+
 
 
 
