@@ -1787,27 +1787,37 @@ function fallbackCopy(text) {
     document.body.removeChild(textArea);
 }
   
-// 1. 五行图标与颜色样式映射字典
-const WuXingIcons = {
-    '木': { icon: '🌳', class: 'wx-木' }, // 大树
-    '火': { icon: '🔥', class: 'wx-火' }, // 火焰
-    '土': { icon: '⛰️', class: 'wx-土' }, // 大山/土地
-    '金': { icon: '🪙', class: 'wx-金' }, // 金块/金属
-    '水': { icon: '💧', class: 'wx-水' }  // 水滴
+// 1. 十天干专属意象字典（阴阳区分）
+const GanIcons = {
+    '甲': { icon: '🌳', class: 'wx-木', name: '阳木' },
+    '乙': { icon: '🌿', class: 'wx-木', name: '阴木' },
+    '丙': { icon: '☀️', class: 'wx-火', name: '阳火' },
+    '丁': { icon: '🕯️', class: 'wx-火', name: '阴火' },
+    '戊': { icon: '⛰️', class: 'wx-土', name: '阳土' },
+    '己': { icon: '🗻', class: 'wx-土', name: '阴土' },
+    '庚': { icon: '⚔️', class: 'wx-金', name: '阳金' },
+    '辛': { icon: '⚜️', class: 'wx-金', name: '阴金' }, // 辛金：璀璨珠宝/钻石
+    '壬': { icon: '🌊', class: 'wx-水', name: '阳水' },
+    '癸': { icon: '💦', class: 'wx-水', name: '阴水' }
 };
 
-// 2. 升级藏干方法：带五行图标与括弧十神
+// 获取天干或地支主气的图标信息
+function getGanInfo(gan) {
+    return GanIcons[gan] || { icon: '', class: '', name: '' };
+}
+
+// 2. 升级藏干方法：带阴阳天干专属图标与括弧十神
 ShiShenEngine.getCangGanInfoFormatted = function(dayGan, zhi) {
     const gans = this.zhiCangGan[zhi] || [];
     return gans.map(g => {
+        const info = getGanInfo(g);
         const wx = this.ganWuXing[g];
-        const iconObj = WuXingIcons[wx] || { icon: '', class: '' };
         const shishen = this.getShiShen(dayGan, g);
-        return `<span class="bazi-canggan-item"><span class="${iconObj.class}">${iconObj.icon} ${g}${wx}</span>(${shishen})</span>`;
+        return `<span class="bazi-canggan-item"><span class="${info.class}">${info.icon} ${g}${wx}</span>(${shishen})</span>`;
     }).join('');
 };
 
-// 3. 升级四柱竖排卡片生成逻辑：带图标与五行样式
+// 3. 升级四柱竖排卡片生成逻辑：阴阳干支全独立图标渲染
 function generateBaziStructureList(eightChar) {
     const yGan = eightChar.getYearGan(), yZhi = eightChar.getYearZhi();
     const mGan = eightChar.getMonthGan(), mZhi = eightChar.getMonthZhi();
@@ -1818,11 +1828,16 @@ function generateBaziStructureList(eightChar) {
     const mShi = ShiShenEngine.getShiShen(dGan, mGan);
     const tShi = ShiShenEngine.getShiShen(dGan, tGan);
 
-    // 获取干支五行
-    const yGanWX = ShiShenEngine.ganWuXing[yGan], yZhiWX = ShiShenEngine.ganWuXing[ShiShenEngine.zhiCangGan[yZhi][0]];
-    const mGanWX = ShiShenEngine.ganWuXing[mGan], mZhiWX = ShiShenEngine.ganWuXing[ShiShenEngine.zhiCangGan[mZhi][0]];
-    const dGanWX = ShiShenEngine.ganWuXing[dGan], dZhiWX = ShiShenEngine.ganWuXing[ShiShenEngine.zhiCangGan[dZhi][0]];
-    const tGanWX = ShiShenEngine.ganWuXing[tGan], tZhiWX = ShiShenEngine.ganWuXing[ShiShenEngine.zhiCangGan[tZhi][0]];
+    // 取地支本气天干来定位地支图标
+    const yZhiMainGan = ShiShenEngine.zhiCangGan[yZhi][0];
+    const mZhiMainGan = ShiShenEngine.zhiCangGan[mZhi][0];
+    const dZhiMainGan = ShiShenEngine.zhiCangGan[dZhi][0];
+    const tZhiMainGan = ShiShenEngine.zhiCangGan[tZhi][0];
+
+    const yGanInfo = getGanInfo(yGan), yZhiInfo = getGanInfo(yZhiMainGan);
+    const mGanInfo = getGanInfo(mGan), mZhiInfo = getGanInfo(mZhiMainGan);
+    const dGanInfo = getGanInfo(dGan), dZhiInfo = getGanInfo(dZhiMainGan);
+    const tGanInfo = getGanInfo(tGan), tZhiInfo = getGanInfo(tZhiMainGan);
 
     const yCang = ShiShenEngine.getCangGanInfoFormatted(dGan, yZhi);
     const mCang = ShiShenEngine.getCangGanInfoFormatted(dGan, mZhi);
@@ -1838,8 +1853,8 @@ function generateBaziStructureList(eightChar) {
         <div class="bazi-pillar-card">
             <div class="bazi-pillar-title">年柱 (祖业)</div>
             <div class="bazi-shishen-tag">${yShi}</div>
-            <div class="bazi-ganzhi-text wx-${yGanWX}">${WuXingIcons[yGanWX].icon} ${yGan}</div>
-            <div class="bazi-ganzhi-text wx-${yZhiWX}">${WuXingIcons[yZhiWX].icon} ${yZhi}</div>
+            <div class="bazi-ganzhi-text ${yGanInfo.class}">${yGanInfo.icon} ${yGan}</div>
+            <div class="bazi-ganzhi-text ${yZhiInfo.class}">${yZhiInfo.icon} ${yZhi}</div>
             <div class="bazi-canggan-box">${yCang}</div>
         </div>
 
@@ -1847,8 +1862,8 @@ function generateBaziStructureList(eightChar) {
         <div class="bazi-pillar-card">
             <div class="bazi-pillar-title">月柱 (事业)</div>
             <div class="bazi-shishen-tag">${mShi}</div>
-            <div class="bazi-ganzhi-text wx-${mGanWX}">${WuXingIcons[mGanWX].icon} ${mGan}</div>
-            <div class="bazi-ganzhi-text wx-${mZhiWX}">${WuXingIcons[mZhiWX].icon} ${mZhi}</div>
+            <div class="bazi-ganzhi-text ${mGanInfo.class}">${mGanInfo.icon} ${mGan}</div>
+            <div class="bazi-ganzhi-text ${mZhiInfo.class}">${mZhiInfo.icon} ${mZhi}</div>
             <div class="bazi-canggan-box">${mCang}</div>
         </div>
 
@@ -1856,8 +1871,8 @@ function generateBaziStructureList(eightChar) {
         <div class="bazi-pillar-card" style="border: 2px solid #007aff; background: #f0f7ff;">
             <div class="bazi-pillar-title" style="color:#007aff;">日柱 (日主/婚姻)</div>
             <div class="bazi-shishen-tag">日主</div>
-            <div class="bazi-ganzhi-text wx-${dGanWX}">${WuXingIcons[dGanWX].icon} ${dGan}</div>
-            <div class="bazi-ganzhi-text wx-${dZhiWX}">${WuXingIcons[dZhiWX].icon} ${dZhi}</div>
+            <div class="bazi-ganzhi-text ${dGanInfo.class}">${dGanInfo.icon} ${dGan}</div>
+            <div class="bazi-ganzhi-text ${dZhiInfo.class}">${dZhiInfo.icon} ${dZhi}</div>
             <div class="bazi-canggan-box">${dCang}</div>
         </div>
 
@@ -1865,8 +1880,8 @@ function generateBaziStructureList(eightChar) {
         <div class="bazi-pillar-card">
             <div class="bazi-pillar-title">时柱 (晚年)</div>
             <div class="bazi-shishen-tag">${tShi}</div>
-            <div class="bazi-ganzhi-text wx-${tGanWX}">${WuXingIcons[tGanWX].icon} ${tGan}</div>
-            <div class="bazi-ganzhi-text wx-${tZhiWX}">${WuXingIcons[tZhiWX].icon} ${tZhi}</div>
+            <div class="bazi-ganzhi-text ${tGanInfo.class}">${tGanInfo.icon} ${tGan}</div>
+            <div class="bazi-ganzhi-text ${tZhiInfo.class}">${tZhiInfo.icon} ${tZhi}</div>
             <div class="bazi-canggan-box">${tCang}</div>
         </div>
     </div>`;
@@ -1875,6 +1890,7 @@ function generateBaziStructureList(eightChar) {
 
 </body>
 </html>
+
 
 
 
