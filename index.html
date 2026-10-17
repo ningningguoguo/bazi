@@ -40,6 +40,61 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 .tag-hui { background: #5856d6; color: white; }
 .tag-suiyun { background: #d9534f; color: white; border: 1px solid #fff; }
 .index-badge { background: rgba(0,0,0,0.25); border-radius: 4px; padding: 1px 4px; font-size: 10px; margin-left: 4px; }
+  
+ /* 四柱竖排卡片容器 */
+.bazi-pillars-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+.bazi-pillar-card {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e5e5ea;
+  padding: 12px 6px;
+  text-align: center;
+}
+.bazi-pillar-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: #666;
+  border-bottom: 1px solid #e5e5ea;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+.bazi-shishen-tag {
+  font-size: 12px;
+  color: #007aff;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.bazi-ganzhi-text {
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1.2;
+  margin: 4px 0;
+}
+.bazi-canggan-box {
+  margin-top: 10px;
+  border-top: 1px dashed #d1d1d6;
+  padding-top: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #333;
+}
+.bazi-canggan-item {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* 五行颜色标识 */
+.wx-木 { color: #2e7d32; font-weight: bold; } /* 绿 */
+.wx-火 { color: #d32f2f; font-weight: bold; } /* 红 */
+.wx-土 { color: #8d6e63; font-weight: bold; } /* 棕 */
+.wx-金 { color: #d97706; font-weight: bold; } /* 黄/琥珀 */
+.wx-水 { color: #0284c7; font-weight: bold; } /* 蓝 */
 </style>
 </head>
 <body>
@@ -1731,11 +1786,95 @@ function fallbackCopy(text) {
     }
     document.body.removeChild(textArea);
 }
+  
+// 1. 五行图标与颜色样式映射字典
+const WuXingIcons = {
+    '木': { icon: '🌳', class: 'wx-木' }, // 大树
+    '火': { icon: '🔥', class: 'wx-火' }, // 火焰
+    '土': { icon: '⛰️', class: 'wx-土' }, // 大山/土地
+    '金': { icon: '🪙', class: 'wx-金' }, // 金块/金属
+    '水': { icon: '💧', class: 'wx-水' }  // 水滴
+};
+
+// 2. 升级藏干方法：带五行图标与括弧十神
+ShiShenEngine.getCangGanInfoFormatted = function(dayGan, zhi) {
+    const gans = this.zhiCangGan[zhi] || [];
+    return gans.map(g => {
+        const wx = this.ganWuXing[g];
+        const iconObj = WuXingIcons[wx] || { icon: '', class: '' };
+        const shishen = this.getShiShen(dayGan, g);
+        return `<span class="bazi-canggan-item"><span class="${iconObj.class}">${iconObj.icon} ${g}${wx}</span>(${shishen})</span>`;
+    }).join('');
+};
+
+// 3. 升级四柱竖排卡片生成逻辑：带图标与五行样式
+function generateBaziStructureList(eightChar) {
+    const yGan = eightChar.getYearGan(), yZhi = eightChar.getYearZhi();
+    const mGan = eightChar.getMonthGan(), mZhi = eightChar.getMonthZhi();
+    const dGan = eightChar.getDayGan(), dZhi = eightChar.getDayZhi();
+    const tGan = eightChar.getTimeGan(), tZhi = eightChar.getTimeZhi();
+
+    const yShi = ShiShenEngine.getShiShen(dGan, yGan);
+    const mShi = ShiShenEngine.getShiShen(dGan, mGan);
+    const tShi = ShiShenEngine.getShiShen(dGan, tGan);
+
+    // 获取干支五行
+    const yGanWX = ShiShenEngine.ganWuXing[yGan], yZhiWX = ShiShenEngine.ganWuXing[ShiShenEngine.zhiCangGan[yZhi][0]];
+    const mGanWX = ShiShenEngine.ganWuXing[mGan], mZhiWX = ShiShenEngine.ganWuXing[ShiShenEngine.zhiCangGan[mZhi][0]];
+    const dGanWX = ShiShenEngine.ganWuXing[dGan], dZhiWX = ShiShenEngine.ganWuXing[ShiShenEngine.zhiCangGan[dZhi][0]];
+    const tGanWX = ShiShenEngine.ganWuXing[tGan], tZhiWX = ShiShenEngine.ganWuXing[ShiShenEngine.zhiCangGan[tZhi][0]];
+
+    const yCang = ShiShenEngine.getCangGanInfoFormatted(dGan, yZhi);
+    const mCang = ShiShenEngine.getCangGanInfoFormatted(dGan, mZhi);
+    const dCang = ShiShenEngine.getCangGanInfoFormatted(dGan, dZhi);
+    const tCang = ShiShenEngine.getCangGanInfoFormatted(dGan, tZhi);
+
+    globalBaziStr = `${yGan}${yZhi}  ${mGan}${mZhi}  ${dGan}${dZhi}  ${tGan}${tZhi}`;
+
+    return `
+    <strong>📜 八字原局干支与四柱结构：</strong>
+    <div class="bazi-pillars-container">
+        <!-- 年柱 -->
+        <div class="bazi-pillar-card">
+            <div class="bazi-pillar-title">年柱 (祖业)</div>
+            <div class="bazi-shishen-tag">${yShi}</div>
+            <div class="bazi-ganzhi-text wx-${yGanWX}">${WuXingIcons[yGanWX].icon} ${yGan}</div>
+            <div class="bazi-ganzhi-text wx-${yZhiWX}">${WuXingIcons[yZhiWX].icon} ${yZhi}</div>
+            <div class="bazi-canggan-box">${yCang}</div>
+        </div>
+
+        <!-- 月柱 -->
+        <div class="bazi-pillar-card">
+            <div class="bazi-pillar-title">月柱 (事业)</div>
+            <div class="bazi-shishen-tag">${mShi}</div>
+            <div class="bazi-ganzhi-text wx-${mGanWX}">${WuXingIcons[mGanWX].icon} ${mGan}</div>
+            <div class="bazi-ganzhi-text wx-${mZhiWX}">${WuXingIcons[mZhiWX].icon} ${mZhi}</div>
+            <div class="bazi-canggan-box">${mCang}</div>
+        </div>
+
+        <!-- 日柱 -->
+        <div class="bazi-pillar-card" style="border: 2px solid #007aff; background: #f0f7ff;">
+            <div class="bazi-pillar-title" style="color:#007aff;">日柱 (日主/婚姻)</div>
+            <div class="bazi-shishen-tag">日主</div>
+            <div class="bazi-ganzhi-text wx-${dGanWX}">${WuXingIcons[dGanWX].icon} ${dGan}</div>
+            <div class="bazi-ganzhi-text wx-${dZhiWX}">${WuXingIcons[dZhiWX].icon} ${dZhi}</div>
+            <div class="bazi-canggan-box">${dCang}</div>
+        </div>
+
+        <!-- 时柱 -->
+        <div class="bazi-pillar-card">
+            <div class="bazi-pillar-title">时柱 (晚年)</div>
+            <div class="bazi-shishen-tag">${tShi}</div>
+            <div class="bazi-ganzhi-text wx-${tGanWX}">${WuXingIcons[tGanWX].icon} ${tGan}</div>
+            <div class="bazi-ganzhi-text wx-${tZhiWX}">${WuXingIcons[tZhiWX].icon} ${tZhi}</div>
+            <div class="bazi-canggan-box">${tCang}</div>
+        </div>
+    </div>`;
+}
 </script>
 
 </body>
 </html>
-
 
 
 
