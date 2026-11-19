@@ -1895,17 +1895,21 @@ function generateBaziStructureList(eightChar) {
     </div>`;
 }
   
-// 辅助函数：把一组列（如 6 列）渲染成竖排卡片 HTML
+// 辅助函数：把一组列（如 6 列）渲染成竖排卡片 HTML（含天干十神）
 function buildVerticalCardsHtml(cols) {
     return cols.map(col => {
         if (!col.gan || !col.zhi) {
             return `
             <div class="bazi-pillar-card">
                 <div class="bazi-pillar-title">${col.roleLabel}</div>
+                <div class="bazi-shishen-tag">--</div>
                 <div class="bazi-ganzhi-text" style="font-size:18px; color:#8e8e93;">${col.ganZhi || '--'}</div>
                 <div class="bazi-canggan-box"><span class="bazi-canggan-item">--</span></div>
             </div>`;
         }
+        const shishen = col.roleLabel === '日柱'
+            ? '日主'
+            : ShiShenEngine.getShiShen(globalDayGan, col.gan);
         const ganInfo = getGanInfo(col.gan);
         const zhiMainGan = ShiShenEngine.zhiCangGan[col.zhi][0];
         const zhiInfo = getGanInfo(zhiMainGan);
@@ -1915,6 +1919,7 @@ function buildVerticalCardsHtml(cols) {
         return `
         <div class="bazi-pillar-card"${cardStyle}>
             <div class="bazi-pillar-title">${col.roleLabel}</div>
+            <div class="bazi-shishen-tag">${shishen}</div>
             <div class="bazi-ganzhi-text ${ganInfo.class}">${ganInfo.icon} ${col.gan}</div>
             <div class="bazi-ganzhi-text ${zhiInfo.class}">${zhiInfo.icon} ${col.zhi}</div>
             <div class="bazi-canggan-box">${cangHtml}</div>
