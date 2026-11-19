@@ -1895,52 +1895,9 @@ function generateBaziStructureList(eightChar) {
     </div>`;
 }
   
- // 获取某一年对应的“大运列”数组（普通年 1 个大运；赶上换运年返回 [前运, 后运] 两个大运）
-function getPillarsDaYunForYear(targetYear) {
-    if (!globalDaYunList || globalDaYunList.length === 0) {
-        return [{ roleLabel: '大运', ganZhi: '童限', gan: '', zhi: '', isTransition: false }];
-    }
-
-    const idx = globalDaYunList.findIndex(
-        dy => targetYear >= dy.startYear && targetYear <= dy.endYear
-    );
-
-    // 赶上换大运年份（且不是第一步运，避免越界）
-    if (idx > 0 && globalDaYunList[idx].startYear === targetYear) {
-        const prevDy = globalDaYunList[idx - 1];
-        const nextDy = globalDaYunList[idx];
-        return [
-            { roleLabel: '前运', ganZhi: prevDy.ganZhi, gan: prevDy.gan, zhi: prevDy.zhi, isTransition: true, dyObj: prevDy },
-            { roleLabel: '后运', ganZhi: nextDy.ganZhi, gan: nextDy.gan, zhi: nextDy.zhi, isTransition: true, dyObj: nextDy }
-        ];
-    }
-
-    if (idx >= 0) {
-        const curDy = globalDaYunList[idx];
-        return [
-            { roleLabel: '大运', ganZhi: curDy.ganZhi, gan: curDy.gan, zhi: curDy.zhi, isTransition: false, dyObj: curDy }
-        ];
-    }
-
-    return [{ roleLabel: '大运', ganZhi: '童限', gan: '', zhi: '', isTransition: false }];
-}
-
-// 渲染网页竖排卡片
-function renderYearVerticalColumns(targetYear, yGan, yZhi) {
-    const dyColumns = getPillarsDaYunForYear(targetYear);
-    const isTransitionYear = dyColumns.some(d => d.isTransition);
-
-    const basePillars = [
-        { roleLabel: '流年', gan: yGan, zhi: yZhi, highlight: true },
-        { roleLabel: '年柱', gan: globalFourGans[0].gan, zhi: globalFourZhis[0].zhi, highlight: false },
-        { roleLabel: '月柱', gan: globalFourGans[1].gan, zhi: globalFourZhis[1].zhi, highlight: false },
-        { roleLabel: '日柱', gan: globalFourGans[2].gan, zhi: globalFourZhis[2].zhi, highlight: true },
-        { roleLabel: '时柱', gan: globalFourGans[3].gan, zhi: globalFourZhis[3].zhi, highlight: false }
-    ];
-
-    const allCols = [...dyColumns, ...basePillars];
-
-    const cardsHtml = allCols.map(col => {
+// 辅助函数：把一组列（如 6 列）渲染成竖排卡片 HTML
+function buildVerticalCardsHtml(cols) {
+    return cols.map(col => {
         if (!col.gan || !col.zhi) {
             return `
             <div class="bazi-pillar-card">
@@ -1963,23 +1920,80 @@ function renderYearVerticalColumns(targetYear, yGan, yZhi) {
             <div class="bazi-canggan-box">${cangHtml}</div>
         </div>`;
     }).join('');
+}
 
-    let transitionTipHtml = '';
-    if (isTransitionYear && dyColumns[1] && dyColumns[1].dyObj) {
-        const nextDy = dyColumns[1].dyObj;
-        transitionTipHtml = `<div style="margin-top:8px; font-size:12px; color:#d9534f; font-weight:bold;">⚡ 换运年份（${targetYear}）：同时列出前运【${dyColumns[0].ganZhi}】与后运【${nextDy.ganZhi}】（交运约 ${nextDy.transitionDate || targetYear + '年'}）</div>`;
+// 获取某一年对应的“大运列”数组（普通年 1 个大运；赶上换运年返回 [前运, 后运] 两个大运）
+function getPillarsDaYunForYear(targetYear) {
+    if (!globalDaYunList || globalDaYunList.length === 0) {
+        return [{ roleLabel: '大运', ganZhi: '童限', gan: '', zhi: '', isTransition: false }];
     }
 
+    const idx = globalDaYunList.findIndex(
+        dy => targetYear >= dy.startYear && targetYear <= dy.endYear
+    );
+
+    if (idx > 0 && globalDaYunList[idx].startYear === targetYear) {
+        const prevDy = globalDaYunList[idx - 1];
+        const nextDy = globalDaYunList[idx];
+        return [
+            { roleLabel: '前运', ganZhi: prevDy.ganZhi, gan: prevDy.gan, zhi: prevDy.zhi, isTransition: true, dyObj: prevDy },
+            { roleLabel: '后运', ganZhi: nextDy.ganZhi, gan: nextDy.gan, zhi: nextDy.zhi, isTransition: true, dyObj: nextDy }
+        ];
+    }
+
+    if (idx >= 0) {
+        const curDy = globalDaYunList[idx];
+        return [
+            { roleLabel: '大运', ganZhi: curDy.ganZhi, gan: curDy.gan, zhi: curDy.zhi, isTransition: false, dyObj: curDy }
+        ];
+    }
+
+    return [{ roleLabel: '大运', ganZhi: '童限', gan: '', zhi: '', isTransition: false }];
+}
+
+// 渲染网页竖排卡片（普通年 1 组 6 列；换运年拆分为上下 2 组各 6 列）
+function renderYearVerticalColumns(targetYear, yGan, yZhi) {
+    const dyColumns = getPillarsDaYunForYear(targetYear);
+    const isTransitionYear = dyColumns.some(d => d.isTransition);
+
+    const commonTailPillars = [
+        { roleLabel: '流年', gan: yGan, zhi: yZhi, highlight: true },
+        { roleLabel: '年柱', gan: globalFourGans[0].gan, zhi: globalFourZhis[0].zhi, highlight: false },
+        { roleLabel: '月柱', gan: globalFourGans[1].gan, zhi: globalFourZhis[1].zhi, highlight: false },
+        { roleLabel: '日柱', gan: globalFourGans[2].gan, zhi: globalFourZhis[2].zhi, highlight: true },
+        { roleLabel: '时柱', gan: globalFourGans[3].gan, zhi: globalFourZhis[3].zhi, highlight: false }
+    ];
+
     const box = document.getElementById('liunianVerticalBox');
-    if (box) {
-        box.innerHTML = `<div class="bazi-pillars-container">${cardsHtml}</div>${transitionTipHtml}`;
+    if (!box) return;
+
+    if (isTransitionYear && dyColumns.length >= 2) {
+        const prevCol = dyColumns[0];
+        const nextCol = dyColumns[1];
+        const transitionDateStr = (nextCol.dyObj && nextCol.dyObj.transitionDate) ? nextCol.dyObj.transitionDate : `${targetYear}年`;
+
+        const prevCards = buildVerticalCardsHtml([prevCol, ...commonTailPillars]);
+        const nextCards = buildVerticalCardsHtml([nextCol, ...commonTailPillars]);
+
+        box.innerHTML = `
+            <div style="padding:10px 12px; border:1px solid #e5e5ea; border-radius:12px; background:#fafafa;">
+                <div style="font-size:12px; font-weight:bold; color:#666; margin-bottom:4px;">前运对照（${prevCol.ganZhi} 运 · ${transitionDateStr} 前）</div>
+                <div class="bazi-pillars-container" style="margin-top:4px;">${prevCards}</div>
+            </div>
+            <div style="margin-top:12px; padding:10px 12px; border:1px solid #bfdbfe; border-radius:12px; background:#f8fbff;">
+                <div style="font-size:12px; font-weight:bold; color:#007aff; margin-bottom:4px;">后运对照（${nextCol.ganZhi} 运 · 约 ${transitionDateStr} 交入）</div>
+                <div class="bazi-pillars-container" style="margin-top:4px;">${nextCards}</div>
+            </div>
+        `;
+    } else {
+        const singleCards = buildVerticalCardsHtml([dyColumns[0], ...commonTailPillars]);
+        box.innerHTML = `<div class="bazi-pillars-container">${singleCards}</div>`;
     }
 }
 </script>
 
 </body>
 </html>
-
 
 
 
