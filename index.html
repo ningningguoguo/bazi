@@ -1814,13 +1814,14 @@ function getGanInfo(gan) {
 }
 
 // 2. 升级藏干方法：带阴阳天干专属图标与括弧十神
+// 2. 升级藏干方法：不带小图标，只留干支五行色与括弧十神
 ShiShenEngine.getCangGanInfoFormatted = function(dayGan, zhi) {
     const gans = this.zhiCangGan[zhi] || [];
     return gans.map(g => {
         const info = getGanInfo(g);
         const wx = this.ganWuXing[g];
         const shishen = this.getShiShen(dayGan, g);
-        return `<span class="bazi-canggan-item"><span class="${info.class}">${info.icon} ${g}${wx}</span>(${shishen})</span>`;
+        return `<span class="bazi-canggan-item"><span class="${info.class}">${g}${wx}</span>(${shishen})</span>`;
     }).join('');
 };
 
