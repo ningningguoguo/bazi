@@ -181,7 +181,10 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 - <strong>逢刑主“塑”：</strong>代表细节磨合与能力重构，是自我升级与规则完善的契机。<br/>
 - <strong>逢合主“凝”：</strong>代表情感凝聚、贵人相助、签约合作与深度羁绊。
 </div>
-
+  
+<!-- 新增： -->
+<!-- 仅用于页面视觉查看：大运/换运双大运 + 流年 + 四柱 + 藏干竖排 -->
+<div id="liunianVerticalBox" style="margin-top:12px;">--</div>
 <!-- 1. 先展示干支结构与冲合刑害明细 -->
 <div class="relation-box" id="yearDetail">--</div>
 
@@ -1048,7 +1051,11 @@ function updateMonthSection() {
         const yZhi = zhiList[targetYearNum % 12];
 
         const currentDaYun = getCurrentDaYunByYear(targetYearNum);
-
+// 第三步：渲染当前流年竖排对照（普通年 6 列，换运年自动为前运+后运 7 列）
+        if (typeof renderYearVerticalColumns === 'function') {
+            renderYearVerticalColumns(targetYearNum, yGan, yZhi);
+        }
+      
         let specialYunNotice = "";
         if (currentDaYun) {
             if (yGan + yZhi === currentDaYun.ganZhi) {
@@ -1886,11 +1893,91 @@ function generateBaziStructureList(eightChar) {
         </div>
     </div>`;
 }
+  
+ // 获取某一年对应的“大运列”数组（普通年 1 个大运；赶上换运年返回 [前运, 后运] 两个大运）
+function getPillarsDaYunForYear(targetYear) {
+    if (!globalDaYunList || globalDaYunList.length === 0) {
+        return [{ roleLabel: '大运', ganZhi: '童限', gan: '', zhi: '', isTransition: false }];
+    }
+
+    const idx = globalDaYunList.findIndex(
+        dy => targetYear >= dy.startYear && targetYear <= dy.endYear
+    );
+
+    // 赶上换大运年份（且不是第一步运，避免越界）
+    if (idx > 0 && globalDaYunList[idx].startYear === targetYear) {
+        const prevDy = globalDaYunList[idx - 1];
+        const nextDy = globalDaYunList[idx];
+        return [
+            { roleLabel: '前运', ganZhi: prevDy.ganZhi, gan: prevDy.gan, zhi: prevDy.zhi, isTransition: true, dyObj: prevDy },
+            { roleLabel: '后运', ganZhi: nextDy.ganZhi, gan: nextDy.gan, zhi: nextDy.zhi, isTransition: true, dyObj: nextDy }
+        ];
+    }
+
+    if (idx >= 0) {
+        const curDy = globalDaYunList[idx];
+        return [
+            { roleLabel: '大运', ganZhi: curDy.ganZhi, gan: curDy.gan, zhi: curDy.zhi, isTransition: false, dyObj: curDy }
+        ];
+    }
+
+    return [{ roleLabel: '大运', ganZhi: '童限', gan: '', zhi: '', isTransition: false }];
+}
+
+// 渲染网页竖排卡片
+function renderYearVerticalColumns(targetYear, yGan, yZhi) {
+    const dyColumns = getPillarsDaYunForYear(targetYear);
+    const isTransitionYear = dyColumns.some(d => d.isTransition);
+
+    const basePillars = [
+        { roleLabel: '流年', gan: yGan, zhi: yZhi, highlight: true },
+        { roleLabel: '年柱', gan: globalFourGans[0].gan, zhi: globalFourZhis[0].zhi, highlight: false },
+        { roleLabel: '月柱', gan: globalFourGans[1].gan, zhi: globalFourZhis[1].zhi, highlight: false },
+        { roleLabel: '日柱', gan: globalFourGans[2].gan, zhi: globalFourZhis[2].zhi, highlight: true },
+        { roleLabel: '时柱', gan: globalFourGans[3].gan, zhi: globalFourZhis[3].zhi, highlight: false }
+    ];
+
+    const allCols = [...dyColumns, ...basePillars];
+
+    const cardsHtml = allCols.map(col => {
+        if (!col.gan || !col.zhi) {
+            return `
+            <div class="bazi-pillar-card">
+                <div class="bazi-pillar-title">${col.roleLabel}</div>
+                <div class="bazi-ganzhi-text" style="font-size:18px; color:#8e8e93;">${col.ganZhi || '--'}</div>
+                <div class="bazi-canggan-box"><span class="bazi-canggan-item">--</span></div>
+            </div>`;
+        }
+        const ganInfo = getGanInfo(col.gan);
+        const zhiMainGan = ShiShenEngine.zhiCangGan[col.zhi][0];
+        const zhiInfo = getGanInfo(zhiMainGan);
+        const cangHtml = ShiShenEngine.getCangGanInfoFormatted(globalDayGan, col.zhi);
+        const cardStyle = col.highlight ? ' style="border: 2px solid #007aff; background: #f0f7ff;"' : '';
+
+        return `
+        <div class="bazi-pillar-card"${cardStyle}>
+            <div class="bazi-pillar-title">${col.roleLabel}</div>
+            <div class="bazi-ganzhi-text ${ganInfo.class}">${ganInfo.icon} ${col.gan}</div>
+            <div class="bazi-ganzhi-text ${zhiInfo.class}">${zhiInfo.icon} ${col.zhi}</div>
+            <div class="bazi-canggan-box">${cangHtml}</div>
+        </div>`;
+    }).join('');
+
+    let transitionTipHtml = '';
+    if (isTransitionYear && dyColumns[1] && dyColumns[1].dyObj) {
+        const nextDy = dyColumns[1].dyObj;
+        transitionTipHtml = `<div style="margin-top:8px; font-size:12px; color:#d9534f; font-weight:bold;">⚡ 换运年份（${targetYear}）：同时列出前运【${dyColumns[0].ganZhi}】与后运【${nextDy.ganZhi}】（交运约 ${nextDy.transitionDate || targetYear + '年'}）</div>`;
+    }
+
+    const box = document.getElementById('liunianVerticalBox');
+    if (box) {
+        box.innerHTML = `<div class="bazi-pillars-container">${cardsHtml}</div>${transitionTipHtml}`;
+    }
+}
 </script>
 
 </body>
 </html>
-
 
 
 
