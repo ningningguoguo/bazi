@@ -215,6 +215,9 @@ input, select, button { width: 100%; padding: 10px; margin-top: 4px; border-radi
 </select>
 </div>
 </div>
+  
+ <!-- 新增：当前流月竖排对照（含大运/换运双大运 + 流年 + 流月 + 四柱 + 藏干） -->
+<div id="liuyueVerticalBox" style="margin-top:12px;">--</div>
 <div class="relation-box" id="monthDetail">--</div>
 
 <!-- 第四栏：恢复流年/流月 综合专项诊断与动画舞台 -->
@@ -1168,6 +1171,10 @@ function updateMonthSection() {
         let monthTargetZhis = [...yearTargetZhis, { name: `流年(${yGan}${yZhi})`, zhi: yZhi }];
 
         const mGan = monthGanZhiObj.gan;
+      // 渲染第三栏流月竖排对照
+        if (typeof renderMonthVerticalColumns === 'function') {
+            renderMonthVerticalColumns(targetYearNum, yGan, yZhi, mGan, targetMonthZhi);
+        }
         const mShiShen = ShiShenEngine.getShiShen(globalDayGan, mGan);
         const mGanRel = FullEarthEngine.analyzeGan(mGan, monthTargetGans);
         
@@ -1970,6 +1977,48 @@ function renderYearVerticalColumns(targetYear, yGan, yZhi) {
     ];
 
     const box = document.getElementById('liunianVerticalBox');
+    if (!box) return;
+
+    if (isTransitionYear && dyColumns.length >= 2) {
+        const prevCol = dyColumns[0];
+        const nextCol = dyColumns[1];
+        const transitionDateStr = (nextCol.dyObj && nextCol.dyObj.transitionDate) ? nextCol.dyObj.transitionDate : `${targetYear}年`;
+
+        const prevCards = buildVerticalCardsHtml([prevCol, ...commonTailPillars]);
+        const nextCards = buildVerticalCardsHtml([nextCol, ...commonTailPillars]);
+
+        box.innerHTML = `
+            <div style="padding:10px 12px; border:1px solid #e5e5ea; border-radius:12px; background:#fafafa;">
+                <div style="font-size:12px; font-weight:bold; color:#666; margin-bottom:4px;">前运对照（${prevCol.ganZhi} 运 · ${transitionDateStr} 前）</div>
+                <div class="bazi-pillars-container" style="margin-top:4px;">${prevCards}</div>
+            </div>
+            <div style="margin-top:12px; padding:10px 12px; border:1px solid #bfdbfe; border-radius:12px; background:#f8fbff;">
+                <div style="font-size:12px; font-weight:bold; color:#007aff; margin-bottom:4px;">后运对照（${nextCol.ganZhi} 运 · 约 ${transitionDateStr} 交入）</div>
+                <div class="bazi-pillars-container" style="margin-top:4px;">${nextCards}</div>
+            </div>
+        `;
+    } else {
+        const singleCards = buildVerticalCardsHtml([dyColumns[0], ...commonTailPillars]);
+        box.innerHTML = `<div class="bazi-pillars-container">${singleCards}</div>`;
+    }
+}
+  
+  
+// 渲染第三栏流月竖排卡片（普通年 1 组 7 列；换运年拆分为上下 2 组各 7 列）
+function renderMonthVerticalColumns(targetYear, yGan, yZhi, mGan, mZhi) {
+    const dyColumns = getPillarsDaYunForYear(targetYear);
+    const isTransitionYear = dyColumns.some(d => d.isTransition);
+
+    const commonTailPillars = [
+        { roleLabel: '流年', gan: yGan, zhi: yZhi, highlight: false },
+        { roleLabel: '流月', gan: mGan, zhi: mZhi, highlight: true },
+        { roleLabel: '年柱', gan: globalFourGans[0].gan, zhi: globalFourZhis[0].zhi, highlight: false },
+        { roleLabel: '月柱', gan: globalFourGans[1].gan, zhi: globalFourZhis[1].zhi, highlight: false },
+        { roleLabel: '日柱', gan: globalFourGans[2].gan, zhi: globalFourZhis[2].zhi, highlight: true },
+        { roleLabel: '时柱', gan: globalFourGans[3].gan, zhi: globalFourZhis[3].zhi, highlight: false }
+    ];
+
+    const box = document.getElementById('liuyueVerticalBox');
     if (!box) return;
 
     if (isTransitionYear && dyColumns.length >= 2) {
